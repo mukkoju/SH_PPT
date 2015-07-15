@@ -2189,8 +2189,8 @@ li.list:target {
 #navigation-bar {
     width:100%;    
     background-color: #FDFDFD;
-    height: 64px;
-    border-bottom : 1px solid #F4F4F4;
+    height: 60px;
+    border-bottom : 0px solid #F4F4F4;
     z-index: 100000;
     position : relative;
     transition: all 0.3s ease-out;
@@ -2493,7 +2493,7 @@ ul._spcSgstn li:not(:last-of-type) {
 #logo {
     display : inline-block;
     height : 30px;
-    margin : 16px 2px 16px 8px;
+    margin: 14px 2px 14px 24px;
 }
 #logo img {
     max-width : 120px;
@@ -2557,10 +2557,10 @@ ul._spcSgstn li:not(:last-of-type) {
 }
 #main-mnu {
     position : absolute;
-    width : 50%;
+    width : 84%;
     height : 100%;
     top : 0;
-    left : 18%;
+    left : 16%;
 }
 #main-mnu ul {
     list-style-type : none;
@@ -2568,13 +2568,14 @@ ul._spcSgstn li:not(:last-of-type) {
 #main-mnu ul a {
     line-height : 16px;
     display : inline-block;
-    padding : 28px 16px 20px    ;
+    padding : 24px 16px 20px;
     font-size : 1em;
     color : #757575;
     letter-spacing : 0.05em;
 }
 #main-mnu ul a:hover {
-    color : #000;
+    background-color:  #DE1218;
+    color: #fff;
 }
 /* Hashtag related css */
 #tags, .tags {list-style-type: none;}
