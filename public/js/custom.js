@@ -16,7 +16,7 @@ $(document).ready(function () {
     user: '',
     nxpg: 2,
     loading: false,
-    prevNws: 9,
+    prevNws: 0,
     prevCnt: 0,
     prevtp: 'All',
     prevTab: '',
@@ -25,7 +25,8 @@ $(document).ready(function () {
     newTab: false,
     isCmplt: false,
     sly: null,
-    slyLoading: false
+    slyLoading: false,
+    isGsuEnd: false
   };
   $.fn.animateElements = function (callback)
   {
@@ -369,10 +370,8 @@ $(document).ready(function () {
       return month[parseInt(m)];
     },
     setActiveTab: function () {
-      $('#happening-now').find('li.menu i.icon-caret-up').addClass('hideElement');
-      $('.tab-content').find('.tab-pane').removeClass('active');
-      $('#happening-now').find('a[href="#' + $(this).attr('id') + '"] > i.icon-caret-up').removeClass('hideElement');
-      $(this).addClass('active');
+      $(this).addClass('active').siblings().removeClass('active');
+      $('#happening-now a[href="#' + $(this).attr('id') + '"]').removeAttr('class');
     },
     getDateTime: function (tmsp) {
       var d = new Date(tmsp * 1000);
@@ -412,7 +411,7 @@ $(document).ready(function () {
       date.t = hrs + ":" + mins + ":" + secs + " " + zn;
       return date;
     },
-    getUsrSgstns: function (isMod) {
+    getUsrSgstns: function (isMod, sid) {
       var $this = $(this);
       var isPrv = true;
       var term = '';
@@ -442,7 +441,7 @@ $(document).ready(function () {
             if ($this.attr('contenteditable'))
             {
               carPos = $this.getCaretPosition();
-              term = request.term.substr(0, carPos).split(' ');
+              term = $.trim(request.term).substr(0, carPos).split(' ');
               if (term.length > 1)
               {
                 term.shift();
@@ -459,14 +458,15 @@ $(document).ready(function () {
               return;
             term = term.substr(9, term.length);
           }
-          else
+          else if ($this.get(0).nodeName != 'INPUT')
             term = term.substr(1);
           if (term.length > 0) {
             $.ajax({
               'url': api + '/us',
               data: {
                 'usr': term,
-                'tp': (isMod ? 1 : 0)
+                'tp': (isMod ? 1 : 0),
+                sid: sid
               },
               type: 'POST',
               dataType: 'text',
@@ -503,6 +503,15 @@ $(document).ready(function () {
                       });
                     });
                   }
+                  if ($this.parents('.tagr').data('tags') != undefined)
+                  {
+                    var be4Ref = $this.parents('.tagr').data('tags').toString().split(',');
+                    be4Ref.forEach(function (e, i) {
+                      unames = $.grep(unames, function (user) {
+                        return user.unme != e;
+                      });
+                    });
+                  }
                   response(unames);
                 }
               }
@@ -512,12 +521,11 @@ $(document).ready(function () {
         create: function () {
           $('.ui-helper-hidden-accessible').remove();
         },
-        focus: function (event, ui) {
-          //Prevent value inserted on focus
-          return false;
+        focus: function (e, ui) {
+          e.preventDefault();
         },
-        select: function (event, ui) {
-          event.preventDefault();
+        select: function (e, ui) {
+          e.preventDefault();
           var refd = '';
           if ($this.prop('tagName') != 'INPUT')
           {
@@ -544,11 +552,11 @@ $(document).ready(function () {
             {
               var inpt = $this.parent();
               var trgt = inpt.parent();
-              var invLst = trgt.data('invt') != undefined ? trgt.data('invt') : [];
+              var invLst = trgt.data('tags') != undefined ? trgt.data('tags') : [];
               invLst.push(ui.item.unme);
-              trgt.data('invt', invLst);
+              trgt.data('tags', invLst);
               inpt.before('<li>' + ui.item.name +
-                      '<a href="#" class="inv-rmv pull-right"><i class="icon-remove"></i></a></li>');
+                      '<a href="#" class="rmv pull-right"><i class="icon-remove"></i></a></li>');
               $this.val('');
               if (((trgt.outerWidth() + trgt.offset().left) - (inpt.prev('li').outerWidth() + inpt.prev('li').offset().left)) < 100)
                 inpt.css('width', '100%');
@@ -557,6 +565,8 @@ $(document).ready(function () {
               refd = $this.data('refd') != undefined ? $this.data('refd') : '';
               $this.data('refd', refd != '' ? refd + '::' + ui.item.unme : ui.item.unme);
             }
+            else if ($this.parents().hasClass('tagr'))
+              return false;
             else {
               this.value = ui.item.name;
               $this.data('unme', ui.item.unme).focus();
@@ -569,7 +579,7 @@ $(document).ready(function () {
         var anchr = "<a class='block box' title='" + item.unme + "'";
         if ($this.hasClass('search-query'))
           anchr += " href='/" + item.unme + "'";
-        anchr += "><img src='" + item.img + "' class='icn pull-left' align='absmiddle' /><p><span class='user-small'>" + item.name + "</span><span class='dft-msg block'>@" + item.unme + "</span></p></a>";
+        anchr += "><div class='icn'><img src='" + item.img + "' class='icn' align='absmiddle' /></div><p><span class='user-small'>" + item.name + "</span><span class='dft-msg block'>@" + item.unme + "</span></p></a>";
         $("<li>").addClass('box').append(anchr).appendTo(ul);
         ul.find("li:last-child").find("img").findPrfPic();
         return ul.find("li:last-child");
@@ -577,7 +587,7 @@ $(document).ready(function () {
       if (!$this.hasClass('search-query'))
         $this.autocomplete("option", "position", sugs_pos);
     },
-    getHstgSgstns: function (rtnDt) {
+    getHstgSgstns: function (rtnDt, sid) {
       var $this = $(this);
       var isPrv = true;
       if (variables.prevTagElem != $this.attr('id') && ($this.attr('id') != 'hstg' && $this.val() == ''))
@@ -622,7 +632,7 @@ $(document).ready(function () {
                   else if ($this.attr('contenteditable'))
                   {
                     carPos = $this.getCaretPosition();
-                    term = request.term.substr(0, carPos).split(' ');
+                    term = term.substr(0, carPos).split(' ');
                     if (term.length > 1)
                     {
                       term.shift();
@@ -641,9 +651,10 @@ $(document).ready(function () {
                   if (term.length > 0)
                   {
                     $.ajax({
-                      'url': '/ajax/gthtgsgstns',
+                      'url': api + '/gthtgs',
                       data: {
-                        'htg': term
+                        'htg': term,
+                        'sid': sid
                       },
                       type: 'POST',
                       dataType: 'text',
@@ -652,6 +663,7 @@ $(document).ready(function () {
                       },
                       success: function (data) {
                         data = JSON.parse(data);
+                        data = data.msg;
                         if (data != -1) {
                           for (var u = 0; u < ((data.length <= 5)? data.length : 5); u++)
                             tags.push(data[u].H);
@@ -671,6 +683,15 @@ $(document).ready(function () {
                               });
                             });
                           }
+                          else if ($this.parents('.tagr').data('tags') != undefined)
+                          {
+                            var be4Tagd = $this.parents('.tagr').data('tags').toString().split(',');
+                            be4Tagd.forEach(function (e, i) {
+                              tags = $.grep(tags, function (tag) {
+                                return tag != e;
+                              });
+                            });
+                          }
                           response(tags);
                         }
                       }
@@ -682,16 +703,18 @@ $(document).ready(function () {
                   $this.html(html);
                 },
                 focus: function (event, ui) {
+                  event.preventDefault();
                   // prevent value inserted on focus
                   if ($this.attr('contenteditable') || $this.hasClass('e-b') || $this.attr('id') == 'hstg' || $this.hasClass('htg-bx'))
                     return false;
                   else
-                    this.value = ui.item.value;
+                    $this.val('#' + ui.item.value);
                 },
                 select: function (event, ui) {
                   if (!rtnDt)
                   {
-                    if ($this.get(0).nodeName == 'INPUT' || $this.get(0).nodeName == 'TEXTAREA')
+                    if (($this.get(0).nodeName == 'INPUT' || $this.get(0).nodeName == 'TEXTAREA')
+                            && !$this.hasClass('search-query'))
                     {
                       var terms = split(this.value);
                       // remove the current input
@@ -700,14 +723,17 @@ $(document).ready(function () {
                       terms.push('#' + ui.item.value);
                       // add placeholder to get the comma-and-space at the end
                       terms.push("");
-
-                      this.value = terms.join(", ");
+                      if (!$this.parents().hasClass('tagr'))
+                        this.value = terms.join(", ");
                       // Saving already added tags
                       var tagd = $this.data('tagd') != undefined ? $this.data('tagd') : '';
                       $this.data('tagd', tagd + (tagd != '' ? '::' + ui.item.value : ui.item.value));
                     }
                     else if ($this.hasClass('search-query'))
+                    {
+                      $this.val('#' + ui.item.value);
                       window.location = '/hashtag/' + ui.item.value.toLowerCase();
+                    }
                     else
                     {
                       var tmp = $.trim($this.html());
@@ -743,6 +769,77 @@ $(document).ready(function () {
       });
       if (!$this.hasClass('search-query'))
         $this.autocomplete("option", "position", sugs_pos);
+    },
+    getSpcSgstns: function ()
+    {
+      var $this = $(this), spcs = [];
+      $this.autocomplete({
+        minLength: 3,
+        source: function (req, res) {
+          var term = req.term;
+          if (term.length > 0)
+          {
+            $.ajax({
+              'url': api + '/gcss',
+              type: 'POST',
+              dataType: 'text',
+              data: {
+                'data': req.term,
+                cnt: 10,
+                pc: 0,
+                'auth': $this.getShIntr(),
+                'usr': $this.getLoggedInUsr()
+              },
+              beforeSend: function () {
+                spcs = [];
+              },
+              success: function (d) {
+                d = JSON.parse(d);
+                var prvLst = $this.parents('.tagr').data('tags');
+                $.each(d, function (i, e) {
+                  if ($.inArray(e.P_Id, prvLst) == -1)
+                    spcs.push(e);
+                });
+              },
+              complete: function () {
+                res(spcs);
+              }
+            });
+          }
+        },
+        focus: function (e, ui) {
+          e.preventDefault();
+        }
+      }).data("ui-autocomplete")._renderItem = function (ul, item) {
+        ul.addClass('_spcSgstn');
+        var type = '';
+        switch (item.P_Space_Mode)
+        {
+          case 0 :
+            type = '<i class="icon-block-sign"></i> Restricted';
+            break;
+          case 1 :
+            type = '<i class="icon-unlocked"></i> Open';
+            break;
+          case 2 :
+            type = '<i class="icon-moderator"></i> Moderated';
+            break;
+          case 4 :
+            type = '<i class="icon-locked"></i> Closed';
+            break;
+        }
+        var anchr = "<a href='#' class='spc'><div class='icn-big'><img src='/public/Multimedia/" +
+                item.P_Feature_Image + "' /></div><p><span class='ttl'>" + $this.buildTxt(item.P_Title, 0) +
+                "</span><span class='dft-msg block'><span>" + type + "</span><span class='dot'></span>"
+                + item.P_Follow_Count + " Followers</span></p></a>";
+        ul.addClass('spc-srch');
+//      $this.focus();
+        var x = $("<li>").append(anchr).appendTo(ul);
+        x.find('img').each(function () {
+          $(this).findPrfPic(0, 1);
+        });
+        return x;
+      };
     },
     stripHtml: function (html)
     {
@@ -855,6 +952,12 @@ $(document).ready(function () {
       return txt.replace(/<a class="ref" href="http(.*?):\/\/(.*?)\/(.*?)">(.*?)<\/a>/g, '@$4').replace(/<a class="tag" href="(.*?)\/hashtag\/(.*?)">(.*?)<\/a>/g, '#$2').replace(/\\/g, "[bksh]").replace(/\t/g, " ")
               .replace(/<span class="tag">(.*?)<\/span>/g, '#$1').replace(/&nbsp;/g, " ").replace(/\r?\n|\r/g, " ");
     },
+    getUrlParam: function (key) {
+      key = key.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+      var regex = new RegExp("[\\?&]" + key + "=([^&#]*)"),
+              results = regex.exec(location.search);
+      return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+    },
     frmtNmbr: function (num) {
       if (num)
       {
@@ -954,9 +1057,17 @@ $(document).ready(function () {
             $this.removeClass('error');
         },
         select: function (evt, ui) {
-          $('#'+$this.parents('.dtpkr-bx').data('trgt')).find('.tm').text(ui.item.value);
+          if ($('#' + $this.parents('.dtpkr-bx').data('trgt')).find('.tm').length)
+            $('#' + $this.parents('.dtpkr-bx').data('trgt')).find('.tm').text(ui.item.value);
+          else {
+            // for debate creation callender
+            var dt = $('#' + $this.parents('.dtpkr-bx').data('trgt')).val();
+            $('#' + $this.parents('.dtpkr-bx').data('trgt')).val('');
+            $('#' + $this.parents('.dtpkr-bx').data('trgt')).attr('value', dt + ui.item.value);
+          }
 //          $this.parents('.dt-tm').find('.dt-mth > .tm').text(ui.item.value);
           trgt.getTmsp(ui.item.value);
+          $("#" + $(this).parents('.dtpkr-bx').data('trgt')).siblings(".popout").find(".tmpkr").attr("value", ui.item.value);
         }
       });
       $this.autocomplete("option", "position", {
@@ -965,7 +1076,7 @@ $(document).ready(function () {
       });
     },
     getTmsp: function (tm) {
-      var $this = $(this), date = null, 
+      var $this = $(this), date = null,
               hrs = 0, mins = 0, tmpDt = new Date();
       if (tm)
       {
@@ -982,6 +1093,10 @@ $(document).ready(function () {
       {
         var d = ($this.val()).split('/');
         var date = new Date(d[2], d[1] - 1, d[0], hrs, mins);
+        if (date == 'Invalid Date' || date == undefined) {
+          var d = ($this.data('dt')).split('/');
+          var date = new Date(d[2], d[1] - 1, d[0], hrs, mins);
+        }
       }
       else if ($this.data('dt') != undefined)
       {
@@ -992,22 +1107,119 @@ $(document).ready(function () {
         var date = new Date(tmpDt.getFullYear(), tmpDt.getMonth(), tmpDt.getDate(), hrs, mins);
       $this.data('tmsp', Math.floor(date.getTime() / 1000));
     },
+    loadRightPane: function ()
+    {
+      var frame = null;
+      if ($('#happening-now a[href="#context"]').hasClass('disabled') && !$(this).isMobile())
+      {
+        frame = $('#stream > .frame');
+        if (!frame.data('sly'))
+          frame.enableSlider();
+        if ($('#cvr-img').data('usr') != undefined)
+        {
+          frame.parent().attr('id', 'context');
+          var usr = $('#cvr-img').data('usr');
+          $('#right-bar').find('h2:first').html('<a href="/' + usr['unme'].toLowerCase() + '">' + usr['nme'] +
+                  '</a>').addClass('in');
+          frame.loadData({
+            'tab': 'context',
+            'usr': usr['unme']
+          });
+        }
+        else
+        {
+          $('#right-bar').find('h2:first').addClass('in');
+          var dt = {};
+          if ($('#cvr-img').data('info') != undefined)
+          {
+            dt = {
+              'tp': 'S',
+              'id': $('#cvr-img').data('info')['id']
+            };
+          }
+          else if ($('#admin').data('info') != undefined)
+          {
+            dt = {
+              'tp': 'S',
+              'id': $('#admin').data('info')['id']
+            };
+          }
+          else
+            dt = {'tab': 'stream'};
+          frame.loadData(dt);
+        }
+      }
+      else
+      {
+        var desc = $('.stry._actv').data('desc');
+        var url = (document.URL).toLowerCase().split('/'), htg = null;
+        if (desc)
+        {
+          if (desc['Htgs'])
+            htg = desc['Htgs'].split(',')[0];
+        }
+        else
+          htg = url[url.length - 1];
+
+        $('#right-bar').find('h2:first').html('Trending on <a href="/hashtag/' + htg.toLowerCase() + '">#' + htg + '</a>').addClass('in');
+
+        frame = $('#context > .frame');
+        if (frame.data('sly'))
+          frame.sly('reload');
+        else
+          frame.enableSlider();
+        // For loading right pane in user profile pages
+        if ($('#cvr-img').data('usr'))
+        {
+          frame.loadData({
+            'tab': 'context',
+            'usr': $('#cvr-img').data('usr')['unme']
+          });
+        }
+        else if (desc || $.inArray('hashtag', url) !== -1) //view or hashtag pages
+        {
+          var data = {
+            'tab': 'context',
+            'tp': 'H',
+            'htg': htg
+          };
+
+          if (desc)
+          {
+            data.tp = desc['tp'];
+            data.id = desc['ID'];
+          }
+
+          if (url[3] == "storydraft")
+            data.tab = "stream";
+          frame.loadData(data);
+        }
+        else
+        {
+          $('#right-bar').find('h2:first').addClass('in');
+          frame.loadData({
+            'tab': 'stream'
+          });
+        }
+      }
+    },
     loadData: function (options) {
       variables.user = $(this).getLoggedInUsr(0);
       ldElem($(this), options);
     },
     addNews: function (options) {
       var $this = $(this);
-      if (!variables.loading && $this.find('.nws-tl').length && !variables.isCmplt)
+      if (!variables.loading && $this.find('.nws-tl, .spc').length && !variables.isCmplt)
       {
         variables.loading = true;
-        if (variables.prevtp != options.cgry)
+        if (variables.prevtp != options.cgry && options.cgry != 'dad')
         {
           variables.prevtp = options.cgry;
           variables.prevNws = 15;
         }
         else
           variables.prevNws += 6;
+
         $.ajax(api + '/gts', {
           dataType: 'json',
           async: true,
@@ -1045,30 +1257,38 @@ $(document).ready(function () {
               for (var d = 0; d < posts.length; d++)
               {
                 var nws = posts[d];
-                $this.append(buildStryTl(nws, (options.isSpc != undefined ? options.isSpc : 0)));
-                $this.chkPrfPic((nws['D_ID'] != undefined ? $("body").data("bunme") : nws.P_Author), (nws.P_Id ? nws.P_Id : nws.D_ID));
-                if (!isMobile())
-                  setPosition($this.find('.nws-tl:last'), $this);
+                if (options.tl_tp != 'S')
+                {
+                  $this.append(buildStryTl(nws, (options.isSpc != undefined ? options.isSpc : 0)))
+                          .find('.nws-tl:last .tmsp').updateTime();
+                  $this.find(".icn").each(function () {
+                    $(this).find('img').findPrfPic();
+                  });
+//                $this.chkPrfPic((nws['D_ID'] != undefined ? $("body").data("bunme") : nws.P_Author), (nws.P_Id ? nws.P_Id : nws.D_ID));
+                  if (!$this.isMobile())
+                    setPosition($this.find('.nws-tl:last'), $this);
+                  else
+                    $this.find('.nws-tl:last').addClass('in');
+                }
                 else
-                  $this.find('.nws-tl:last').addClass('in');
+                  buildSpaces(nws, $this);
 
                 if (d == posts.length - 1)
                   variables.loading = false;
               }
               if (posts.length < 6)
                 variables.isCmplt = true;
-              $this.find('.rdltr , .actn-btn').tooltip();
             }
           },
           complete: function () {
             $this.find(' > .loading').remove();
             if (variables.isCmplt)
             {
-//              var lstTl = $this.find('.nws-tl:last');
-              $this.append('<div class="end">No more stories</div>');
+              var lstTl = $this.find('.nws-tl:last');
+              var heigt = $(document).height();
+              $this.append('<div class="btm-link" style="position: absolute; top: ' + heigt + 'px; left: 0; right: 0; margin-bottom: 60px; text-align:center;"><a>That\'s all we have got for now!</a></div>');
               setEndPosition($this.find('.end'), $this);
             }
-            scaleImages($this);
             variables.nxpg++;
           }
         });
@@ -1076,20 +1296,15 @@ $(document).ready(function () {
     },
     loadNews: function (options) {
       var $this = $(this);
-      if (/^[a-zA-Z0-9- ]*$/.test(options.cgry) == false) {
-        options.cgry = '';
-      }
-      if (options.cgry == 'Articles')
-        $('#usr-pg').append("<div class='loading sml'></div>");
-      else if (!$this.find('.loading').length)
+      if (!$this.find('.loading').length)
         $this.append("<div class='loading sml'></div>");
-      var cnt = 15;
+      var cnt = options.cgry == 'dad' ? 6 : 15;
       $.ajax(api + '/gts', {
         data: {
           'sid': options.spcId,
           'tp': options.tp,
-          'page': 1,
           'ctgy': options.cgry,
+          'page': 1,
           'htg': options.htg,
           'cnt': cnt,
           'kwd': options.kwd,
@@ -1110,32 +1325,40 @@ $(document).ready(function () {
           {
             data = data.msg;
             var d = 0;
-            var lvblg = 1;
             while (d < data.length)
             {
               var nws = data[d];
-              if (!nws.D_Content)
+              if (options.tl_tp != 'S')
               {
-                if (nws.P_Id == '')
-                  nws.P_Id = "tmp" + Math.floor(new Date().getTime() / 1000);
-              }
-              $this.append(buildStryTl(nws, options.isSpc));
-              $this.chkPrfPic((nws['D_ID'] != undefined ? $("body").data("bunme") : nws.P_Author), (nws.P_Id ? nws.P_Id : nws.D_ID));
-              if (!isMobile())
-                setPosition($this.find('.nws-tl:last'), $this);
-              else
-                $this.find('.nws-tl:last').addClass('in');
-              d++;
+                if (!nws.D_Content)
+                {
+                  if (nws.P_Id == '')
+                    nws.P_Id = "tmp" + Math.floor(new Date().getTime() / 1000);
+                }
+                $this.append(buildStryTl(nws, options.isSpc)).find('.nws-tl:last')
+                        .find('.tmsp').updateTime();
+                $this.find(".icn").each(function () {
+                  $(this).find('img').findPrfPic();
+                });
+//              $this.chkPrfPic((nws['D_ID'] != undefined ? $("body").data("bunme") : nws.P_Author), (nws.P_Id ? nws.P_Id : nws.D_ID));
+                if (!$this.isMobile())
+                  setPosition($this.find('.nws-tl:last'), $this);
+                else
+                  $this.find('.nws-tl:last').addClass('in');
 
-              if (nws.P_Id == "wb2b8bdbf4920d4569fb3935628a4bdd3") //wishbery static tile
-                bruteForceWb();
+                if (nws.P_Id == "wb2b8bdbf4920d4569fb3935628a4bdd3") //wishbery static tile
+                  bruteForceWb();
+              }
+              else
+                buildSpaces(nws, $this);
+
+              d++;
             }
-            $this.find('.rdltr , .actn-btn').tooltip();
           }
         },
         complete: function () {
           $this.find('> .loading').remove();
-          if (!$this.find('.nws-tl').length)
+          if (!$this.find('.nws-tl, .spc').length)
           {
             if (options.tl_tp == 'P' || options.htg != null)
               $("#rltd-bx").removeClass("hideElement");
@@ -1147,7 +1370,7 @@ $(document).ready(function () {
                   msg = "You are an avid reader. You have marked nothing to read later.";
                   break;
                 case 'U':
-                  msg = "You don't have any story waiting for moderators approval."
+                  msg = "You don't have any story waiting for moderators approval.";
                   break;
                 case 'M':
                   msg = "You don't have any stories.";
@@ -1179,7 +1402,7 @@ $(document).ready(function () {
                   break;
               }
               if (!$this.find("#page" + variables.nxpg).length)
-                $this.append("<div id='page" + variables.nxpg + "'><div class='msg'>" + msg + "</div></div>");
+                $this.append("<div id='page" + variables.nxpg + "'><div class='btm-link'><a>" + msg + "</a></div></div>");
             }
           }
           if ($this.parent().find('.end').length || $this.siblings('.end').length)
@@ -1187,63 +1410,116 @@ $(document).ready(function () {
             var lstTl = $this.find('.nws-tl:last');
             $this.siblings('.end').removeClass('hideElement').css('top', (parseInt(lstTl.css('top')) + $this.find('.nws-tl:last').outerHeight()) + 'px');
           }
-          scaleImages($this);
           if ($this.attr("id") == "srch-tls")
             $("#srch-rslt").find(".frame").enableSlider();
         }
       });
     },
-    ldSpcLst: function (dt) {
+    buildLists: function (dt, url) {
       var $this = $(this);
-      $.ajax(api + '/gsu', {
+      dt.auth = $this.getShIntr();
+      dt.usr = $this.getLoggedInUsr();
+      var str, res;
+      $.ajax(api + url, {
         data: dt,
-        dataType: 'json',
-        async: true,
+        async: false,
         type: 'post',
-        success: function (data) {
-          data = data.msg;
-          var d = 0;
-          if (data.length == 0) {
-            if (dt.tp == "c" && $("#usr-pg").find(".msg").length == 0 && $("#usr-pg").find(".nws-tl").length == 0)
-              $("#usr-pg").append("<div class='msg'>No Created Spaces Found</div>");
-            else if (dt.tp == "c" && $("#usr-pg").find(".msg").length == 0)
-              $("#usr-pg").append("<div class='msg'>No More Created Spaces Found</div>");
-            else if (dt.tp == "f" && $("#usr-pg").find(".msg").length == 0 && $("#usr-pg").find(".nws-tl").length == 0)
-              $("#usr-pg").append("<div class='msg'>No More Following Spaces Found</div>");
-            else if (dt.tp == "f" && $("#usr-pg").find(".msg").length == 0)
-              $("#usr-pg").append("<div class='msg'>No Following Spaces Found</div>");
-            var msgTrgt = $("#usr-pg").find(".msg");
-            var top = msgTrgt.prev().css("top");
-            top = parseInt(top.replace("px", "")) + 500;
-            top = top + "px";
-            msgTrgt.css({"position": "absolute", "top": top});
-          }
-          while (d < data.length)
-          {
-            var nws = data[d];
-            if (!nws.D_Content)
-            {
-              if (nws.P_Id == '')
-                nws.P_Id = "tmp" + Math.floor(new Date().getTime() / 1000);
+        success: function (dt) {
+          dt = JSON.parse(dt);
+          if (dt.success) {
+            var imgPath = $('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/" :
+                    $("body").data("auth") + "/public/Multimedia/";
+            for (var i = 0; i < dt['msg'].length; i++) {
+              str = '<div class="_spcItm">' +
+                      '<div class="_hdr">' +
+                      '<div class="pull-left">' +
+                      '<a href="/" class="icn pull-left" target="_blank">' +
+                      '<img src="' + imgPath + dt['msg'][i]['ID'] + '">' +
+                      '</a>' +
+                      '<p>' +
+                      '<a href="/' + dt['msg'][i]['Title_ID'] + '" class="user-small" target="_blank">' + dt['msg'][i]['Title'] + '</a>' +
+//                      '<span class="block dft-msg">Created by ' + dt['msg'][i]['FN'] + '</span>' +
+                      '</p>' +
+                      '</div>' +
+                      '<div class="pull-right _itmOpt">' +
+                      '<a class="popper br transition in" href="#"><i class="icon-cog"></i></a>' +
+                      '<div class="popout" data-dir="btm sml">' +
+                      '<ul class="nav-pop" id="lst-opt" data-actn = "/sdm" data-id="' + dt['msg'][i]['ID'] + '">' +
+                      '<li><a href="#" class="aprv" data-val="1"><i class="icon-ok"></i>Approve</a></li>' +
+                      '<li><a href="#" class="rjct" data-val="0"><i class="icon-remove"></i>Reject</a></li>' +
+                      '</ul>' +
+                      '</div>' +
+                      '</div>' +
+                      '<div class="clearfix"></div>' +
+                      '</div>' +
+                      '<hr>' +
+                      '</div> ';
+              $this.append(str);
             }
-            $this.append(buildStryTl(nws));
-            $this.chkPrfPic((nws['D_ID'] != undefined ? $("body").data("bunme") : nws.P_Author), nws.P_Id);
-
-            if (!isMobile())
-              setPosition($this.find('.nws-tl:last'), $this);
-            else
-              $this.find('.nws-tl:last').addClass('in');
-            d++;
+            res = dt['msg'].length;
           }
-          // console.log(d);
+          else
+            $('#sts-msg').showStatus(dt.msg, "err");
+        },
+        complete: function () {
+          $this.find("img").each(function () {
+            $(this).findPrfPic(0, 1);
+          });
         }
       });
+      return res;
+    },
+    ldSpcLst: function (dt) {
+      var $this = $(this);
+      if (!variables.isGsuEnd)
+      {
+        dt.auth = $this.getShIntr();
+        dt.usr = $this.getLoggedInUsr();
+        $.ajax(api + '/gsu', {
+          data: dt,
+          dataType: 'json',
+          async: true,
+          type: 'post',
+          success: function (data) {
+            data = data.msg;
+            var d = 0;
+            if (data.length == 0) {
+              variables.isGsuEnd = true;
+              if (dt.tp == "c")
+              {
+                if ($this.find('.spc').length)
+                  $this.append("<div class='btm-link'>That's all you have created till now!</div>");
+                else
+                  $this.append("<div class='emty-sts'>Oops! You are yet to create your first space.<br>" +
+                          "<a href='" + $('body').data('auth') + "/new/space'>Create a new space</a></div>");
+              }
+              else
+              {
+                if ($this.find('.spc').length)
+                  $this.append("<div class='btm-link'>That's all you have got for now!</div>");
+                else
+                  $this.append("<div class='btm-link'>unfortunately, you are not following any spaces</div>");
+              }
+            }
+            else
+            {
+              for (var d = 0; d < data.length; d++)
+              {
+                buildSpaces(data[d], $this);
+              }
+            }
+            // console.log(d);
+          }
+        });
+      }
     },
     updateTime: function (options) {
       if (options != undefined)
         var ts = options.ts;
       else
         var ts = $(this).attr('tmsp');
+      if (ts == 'undefined' || !ts)
+        return false;
       var tmsp = new Date(ts * 1000);
       var td = new Date();
       var diff = Math.floor((td.getTime() - tmsp.getTime()) / 1000);
@@ -1329,7 +1605,7 @@ $(document).ready(function () {
             data = JSON.parse(data);
             $('#pop-prw > section').html(data['frm']).showPopup(size);
             if (askLgn)
-              $('#pop-prw').find('.err-msg').text('You need to login for that');
+              $('#pop-prw').find('.err-msg').text('You need to login to proceed further');
           }
         });
       }
@@ -1418,58 +1694,29 @@ $(document).ready(function () {
           if (pos['dest'] > pos['end'] * 0.9 && !variables.slyLoading)
           {
             variables.slyLoading = true;
-            if (id == "srch-rslt") // in case of search 
-              $('#srch-tls').addNews($("#srch-tls").data("opts"));
-            else if (id != 'context' && id != 'posts')
-            {
-              var dt = {'tab': 'stream'};
-              if ($('#cvr-img').data('info') != undefined)
-                dt = {
-                  'tp': 'S',
-                  'id': $('#cvr-img').data('info')['id']
-                };
-              variables.slyLoading = !(frame.loadData(dt));
-            }
-            else
-            {
-              if (id == 'posts')
-              {
-                frame.loadData({
-                  'tab': 'context',
-                  'usr': $('#cvr-img').length ? $('#cvr-img').data('usr')['unme'] : frame.getLoggedInUsr()
-                });
-              }
-              else
-              {
-                var adt = $('.edtr').data('desc');
-                var data = {
-                  'tab': 'context',
-                  'tp': 'H',
-                  'htg': frame.parent().data('htg'),
-                  'id': adt.id
-                };
-                if ($('#article').length)
-                  data.tp = 'A';
-                else if ($('#event').length)
-                  data.tp = 'E';
-                else if ($('#ptn').length)
-                  data.tp = 'P';
-                frame.loadData(data);
-              }
-            }
+            frame.loadRightPane();
           }
         });
       }
     },
     showPopup: function (size, x) {
-      var $this = $(this).parent();
-      $('#con-del').modal('hide'); // TO hide confirmation popups
-      $('.sts-msg-bx').addClass('err');
+      var $this = $(this).parents('.pop-par');
       $this.addClass('view');
-      if (size)
-        $this.addClass('big');
-      else
-        $this.removeClass('big');
+      $('#con-del').removeClass('in'); // TO hide confirmation popups
+//      $this.addClass('view');
+//      if (size)
+//        $this.addClass('big');
+//      else
+//        $this.removeClass('big');
+      if ($('#popout').hasClass("in")) {
+        var trgt = $('#popout');
+        trgt.removeAttr('class').contents().not('.arrow').remove();
+        $('.popper._opn').removeClass('_opn');
+        setTimeout(function () {
+          trgt.removeAttr('style');
+        }, 100);
+      }
+
     },
     getShIntr: function () {
       var cookiesArray = document.cookie.split(';'); //Splitting bcoz there might be other cookies like piwik related
@@ -1519,17 +1766,363 @@ $(document).ready(function () {
       };
       trgt.find('img:last').remove();
     },
-    findPrfPic: function (icon) {
+    findPrfPic: function (icon, spc) {
       var $this = $(this);
       var img = new Image();
       img.src = $this.attr('src');
       img.onerror = function () {
-        if (icon == 1)
-          $this.replaceWith("<i class=icon-profile></i>");
-        else {
-          $this.replaceWith('<img src="/public/images/user.png" class="'+$this.attr('class')+'">');
+        if (spc)
+          $this.replaceWith('<img src="' + $('body').data('auth') + '/public/images/dft-spc.png" />');
+        else
+        {
+          if (icon == 1)
+            $this.replaceWith("<i class=icon-profile></i>");
+          else
+            $this.replaceWith('<img src="' + $('body').data('auth') + '/public/images/user.png" />');
         }
       };
+    },
+    // $this -> trigger, trgt -> #popout
+    setPopPosition: function (trgt) {
+      var $this = $(this);
+      if (trgt.hasClass('top') || trgt.hasClass('btm'))
+      {
+        if (trgt.hasClass('top'))
+          trgt.css({'top': ($this.offset().top - trgt.outerHeight() - 8) + 'px'});
+        else if (trgt.hasClass('btm'))
+          trgt.css({'top': (($this.outerHeight() + $this.offset().top) + 7) + 'px'});
+        if (!($this.hasClass('bl') || $this.hasClass('br')))
+        {
+          trgt.css({'left': ($this.offset().left - ((trgt.outerWidth() - $this.outerWidth()) / 2)) + 'px', 'right': 'auto'});
+          if (trgt.offset().left < 0)
+            trgt.css({'left': '0', 'right': 'auto'}).find('arrow').css('left', ($this.outerWidth() / 2 - 4) + 'px');
+          else if ($(window).width() <= Math.ceil(trgt.offset().left + trgt.outerWidth()))
+            trgt.css({'left': 'auto', 'right': ($(window).width() - ($this.offset().left + $this.outerWidth()) - 4) + 'px'}).find('.arrow').css({'left': (trgt.outerWidth() - 4 - $this.outerWidth() / 2) + 'px'});
+        }
+        else
+        {
+          if ($this.hasClass('bl'))
+            trgt.css({'left': $this.offset().left + 'px', 'right': 'auto'}).find('.arrow')
+                    .css('left', ($this.outerWidth() / 2) + 'px');
+          else
+            trgt.css({'left': ($this.offset().left + $this.outerWidth() - trgt.outerWidth()) + 'px', 'right': 'auto'})
+                    .find('.arrow').css('left', (trgt.outerWidth() - ($this.outerWidth() / 2) + 4) + 'px');
+        }
+      }
+      else
+      {
+        trgt.css('top', ($this.offset().top - (trgt.outerHeight() - $this.outerHeight()) / 2) + 'px');
+        if (trgt.hasClass('right'))
+          trgt.css({'left': ($this.offset().left + $this.outerWidth() + 11) + 'px'});
+        else if (trgt.hasClass('left'))
+          trgt.css({'left': -(trgt.outerWidth() + 11) + 'px'});
+
+        if (trgt.offset().top < 0)
+          trgt.css({'top': parseInt(trgt.css('top')) + trgt.offset().top}).find('.arrow').css('top', ($this.outerHeight() / 2 - 5) + 'px');
+        else if ($(window).outerHeight() <= Math.ceil(trgt.scrollHeight - trgt.offset().top + trgt.outerHeight()))
+        {
+          var trgtBtm = Math.ceil(trgt.outerHeight() + trgt.offset().top), arw = trgt.find('.arrow');
+          trgt.css({'top': (parseInt(trgt.css('top')) - (trgtBtm - $(window).height()) - 8) + 'px'});
+          arw.css('top', (parseInt(arw.css('top')) + (trgtBtm - $(window).height()) + 22) + 'px');
+        }
+      }
+    },
+    shwErr: function (dir, msg) {
+      var trgt = $('#tooltip'), $this = $(this);
+      $this.addClass('_err-actv');
+      trgt.removeAttr('class').addClass(dir + ' _tltp-err in').find('p').html(msg);
+      $this.setPopPosition(trgt);
+      setTimeout(function () {
+        $("#tooltip").removeClass('in');
+      }, 4000);
+      return false;
+    },
+    adjustInputPos: function () {
+      var inptr = $(this), trgt = inptr.parent(), prv = inptr.prev('li');
+      prv = prv.length ? (prv.outerWidth() + prv.offset().left) : 0;
+      if (((trgt.outerWidth() + trgt.offset().left) - prv) < 160)
+        inptr.css('width', '100%');
+      else
+        inptr.css('width', ((trgt.offset().left + trgt.outerWidth()) - (inptr.prev('li').length ? (inptr.prev('li').outerWidth() + inptr.prev('li').offset().left) : 0) - 16));
+    },
+    loadSpcCvrImg: function () {
+      var ttl_ar = 0, trgt = $(this), cvr = trgt.data('cvr');
+      var img = new Image();
+      img.src = ($('#user-nav').data('isLive') ? 'https://saddahaq.blob.core.windows.net/multimedia/' : $('body').data('auth') + '/public/Multimedia/') + (typeof cvr == 'object' ? cvr['cvr'] : trgt.data('cvr'));
+      img.onload = function () {
+        ttl_ar = parseFloat((this.width / this.height).toFixed(3));
+        var adStr = '<figure class="img-fig box fade transition" tabindex="0">' +
+                '<div class="ar-hldr">' +
+                '<div class="ar"></div>' +
+                '<img src="' + img.src + '" ' + (typeof cvr == 'object' ? 'style="top:' + cvr['top'] + 'px"' : '') + ' />' +
+                '</div></figure>';
+        trgt.append(adStr);
+        trgt.find('figure img').on('load', function () {
+          var img = $(this), img_ar = parseFloat((this.naturalWidth / this.naturalHeight).toFixed(3));
+          img.siblings('.ar').css('padding-bottom', (100 / img_ar) + '%');
+          img.parents('figure').css('width', ((img_ar / ttl_ar) * 100) + '%').addClass('in');
+        });
+      };
+    },
+    isMobile: function () {
+      if (navigator.userAgent.match(/Android/i)
+              || navigator.userAgent.match(/webOS/i)
+              || navigator.userAgent.match(/iPhone/i)
+              || navigator.userAgent.match(/iPod/i)
+              || navigator.userAgent.match(/BlackBerry/i)
+              || navigator.userAgent.match(/IEMobile/i)
+              ) {
+        return true;
+      }
+      else {
+        return false;
+      }
+    },
+    buildNtfs: function () {
+      var $this = $(this), usr = $this.getLoggedInUsr(), flag;
+      var data = {};
+      data.auth = $this.getShIntr();
+      data.usr = $this.getLoggedInUsr();
+      if ($this.attr('id') == 'notifications')
+        var pg = 1;
+
+      if (pg) {
+        data.pc = $this.find('li').length;
+        data.cnt = 10;
+      } else {
+        data.pc = 0;
+        data.cnt = 5;
+      }
+      $.ajax(api + '/ntfs', {
+        data: data,
+        async: false,
+        type: 'post',
+        success: function (ndata) {
+          var d = JSON.parse(ndata);
+          d = d.msg;
+          flag = d.length;
+          if (!d.length)
+            $this.append('<li class="nontf">No notifications</li>');
+
+          else
+          {
+            var imgsrcbase = $('#user-nav').data('isLive') ? 'https://saddahaq.blob.core.windows.net/multimedia/P_Pic_' : '/public/Multimedia/P_Pic_';
+            for (var i = 0; i < d.length; i++)
+
+            {
+              var tag = '', ttl = '', href = '';
+              switch (d[i].N_Type)
+              {
+                case 'Q':
+                  if (d[i].N_Tag == '@')
+                    tag = 'posted';
+                  href = '#';
+                  ttl = d[i].N_Content;
+                  break;
+                case 'A':
+                  ttl = d[i].N_Article_Event_Title;
+                  var cntnt = $this.stripHtml(d[i].N_Content);
+                  if (d[i].N_Tag == 'V')
+                    tag = "votedup " + (d[i].N_Author == usr ? "your" : d[i].N_Author_Full_Name + "'s");
+                  else if (d[i].N_Tag == 'CM')
+                    tag = "commented on " + (d[i].N_Author == usr ? "your" : d[i].N_Author_Full_Name + "'s");
+                  else if (d[i].N_Tag == '@')
+                    tag = 'mentioned you in the story';
+                  else if (d[i].N_Tag == 'CC')
+                    tag = 'replied to your comment in';
+                  else if (d[i].N_Tag == 'U')
+                    tag = 'votedup your comment in';
+                  else if (d[i].N_Tag == 'D')
+                    tag = 'voteddown your comment in';
+                  else if (d[i].N_Tag == 'P')
+                    tag = 'answered a poll in';
+                  else if (d[i].N_Tag == 'M')
+                    tag = 'assigned this story to moderate';
+                  else if (d[i].N_Tag == '@C')
+                    tag = 'mentioned you in a comment in';
+                  else if (d[i].N_Tag == 'TS' && d[i].Space_Mode == 2)//moderator tagged
+                    tag = 'tagged <span class="ttl">' + d[i].N_Author_Full_Name + '\'s</span> story to ';
+                  else if (d[i].N_Tag == 'TS')
+                    tag = 'tagged <span class="ttl">"' + (cntnt ? (cntnt.length > 40 ? $(this).buildTxt(cntnt).substr(0, 37) + '...' : cntnt) : '') + '"</span> to ';
+                  else if (d[i].N_Tag == 'IR')
+                    tag = "wrote a story in response to"; //started a petition; is organizing an event;
+                  else if (d[i].N_Tag == 'I')
+                    tag = 'invited you to see';
+
+                  href = $('body').data('auth') + d[i].N_Link;
+                  break;
+                case 'E':
+                  ttl = d[i].N_Article_Event_Title;
+                  var cntnt = $this.stripHtml(d[i].N_Content);
+                  if (d[i].N_Tag == 'A')
+                    tag = (d[i].N_Refer_To.split(",").length > 1 ? 'are' : 'is') + " attending " + (d[i].N_Author == usr ? "your" : d[i].N_Author_Full_Name + "'s");
+                  else if (d[i].N_Tag == 'CM')
+                    tag = "commented on " + (d[i].N_Author == usr ? "your" : d[i].N_Author_Full_Name + "'s");
+                  else if (d[i].N_Tag == 'N')
+                    tag = 'sent a notification in event';
+                  else if (d[i].N_Tag == 'U')
+                    tag = 'votedup your comment in';
+                  else if (d[i].N_Tag == 'D')
+                    tag = 'voteddown your comment in';
+                  else if (d[i].N_Tag == 'I')
+                    tag = 'invited you to event';
+                  else if (d[i].N_Tag == '@C')
+                    tag = 'mentioned you in a comment in';
+                  else if (d[i].N_Tag == '@')
+                    tag = 'mentioned you in event';
+                  else if (d[i].N_Tag == 'CC')
+                    tag = 'replied to your comment in';
+                  else if (d[i].N_Tag == 'TS' && d[i].Space_Mode == 2)//moderator tagged
+                    tag = 'tagged <span class="ttl">' + d[i].N_Author_Full_Name + '\'s</span> event to ';
+                  else if (d[i].N_Tag == 'TS')
+                    tag = 'tagged <span class="ttl">"' + (cntnt ? (cntnt.length > 40 ? $(this).buildTxt(cntnt).substr(0, 37) + '...' : cntnt) : '') + '"</span> to ';
+                  else if (d[i].N_Tag == 'IR')
+                    tag = 'is organizing an event in response to';
+                  else if (d[i].N_Tag == 'I')
+                    tag = 'invited you to see';
+                  href = $('body').data('auth') + d[i].N_Link;
+                  break;
+                case 'P':
+                  ttl = d[i].N_Article_Event_Title;
+                  var cntnt = $this.stripHtml(d[i].N_Content);
+                  if (d[i].N_Tag == 'S')
+                    tag = "signed " + (d[i].N_Author == usr ? "your" : d[i].N_Author_Full_Name + "'s");
+                  else if (d[i].N_Tag == 'CM')
+                    tag = "commented on " + (d[i].N_Author == usr ? "your" : d[i].N_Author_Full_Name + "'s");
+                  else if (d[i].N_Tag == 'SC')
+                    tag = 'reached target signatures';
+                  else if (d[i].N_Tag == '@')
+                    tag = 'mentioned you in the petition';
+                  else if (d[i].N_Tag == 'CC')
+                    tag = 'replied to your comment in';
+                  else if (d[i].N_Tag == 'U')
+                    tag = 'votedup your comment in';
+                  else if (d[i].N_Tag == 'D')
+                    tag = 'voteddown your comment in';
+                  else if (d[i].N_Tag == '@C')
+                    tag = 'mentioned you in a comment in';
+                  else if (d[i].N_Tag == 'TS' && d[i].Space_Mode == 2) //moderator tagged
+                    tag = 'tagged <span class="ttl">' + d[i].N_Author_Full_Name + '\'s</span> petition to ';
+                  else if (d[i].N_Tag == 'TS')
+                    tag = 'tagged <span class="ttl">"' + (cntnt ? (cntnt.length > 40 ? $(this).buildTxt(cntnt).substr(0, 37) + '...' : cntnt) : '') + '"</span> to ';
+                  else if (d[i].N_Tag == 'IR')
+                    tag = 'started a petition in response to';
+                  else if (d[i].N_Tag == 'I')
+                    tag = 'invited you to see';
+                  href = $('body').data('auth') + d[i].N_Link;
+                  break;
+                case 'U':
+                  ttl = $("body").data("user");
+                  if (d[i].N_Tag == 'F')
+                    tag = 'started following';
+                  href = $('body').data('auth') + d[i].N_Link;
+                  break;
+                case 'S':
+                  ttl = d[i].N_Article_Event_Title;
+                  if (d[i].N_Tag == 'F')
+                    tag = 'started following this space';
+                  else if (d[i].N_Tag == 'C')
+                    tag = 'created this space';
+                  else if (d[i].N_Tag == 'A')
+                    tag = 'added as admin to space';
+                  else if (d[i].N_Tag == 'I')
+                    tag = 'invited you to see';
+                  href = $('body').data('auth') + d[i].N_Link;
+                  break;
+                case 'D' :
+                  ttl = d[i].N_Article_Event_Title;
+                  var cntnt = $this.stripHtml(d[i].N_Content);
+                  if (d[i].N_Tag == 'TS' && d[i].Space_Mode == 2)//moderator tagged
+                    tag = 'tagged <span class="ttl">' + d[i].N_Author_Full_Name + '\'s</span> debate to ';
+                  else if (d[i].N_Tag == 'TS')
+                    tag = 'tagged <span class="ttl">"' + (cntnt ? (cntnt.length > 40 ? $(this).buildTxt(cntnt).substr(0, 37) + '...' : cntnt) : '') + '"</span> to ';
+                  else if (d[i].N_Tag == 'I')
+                    tag = 'invited you to see';
+                  if ($('#user-nav').data('isLive'))
+                    href = "https://debate.saddahaq.com/" + d[i].N_Link;
+                  else
+                    href = "https://dt.saddahaq.com/" + d[i].N_Link;
+                  break;
+                case 'T' :
+                  ttl = d[i].N_Article_Event_Title;
+                  var cntnt = $this.stripHtml(d[i].N_Content);
+                  if (d[i].N_Tag == 'TS' && d[i].Space_Mode == 2)//moderator tagged
+                    tag = 'tagged <span class="ttl">' + d[i].N_Author_Full_Name + '\'s</span> townhall to ';
+                  if (d[i].N_Tag == 'TS')
+                    tag = 'tagged <span class="ttl">"' + (cntnt ? (cntnt.length > 40 ? $(this).buildTxt(cntnt).substr(0, 37) + '...' : cntnt) : '') + '"</span> to ';
+                  else if (d[i].N_Tag == 'I')
+                    tag = 'invited you to see';
+                  if ($('#user-nav').data('isLive'))
+                    href = "https://townhall.saddahaq.com/" + d[i].N_Link;
+                  else
+                    href = "https://tt.saddahaq.com/" + d[i].N_Link;
+                  break;
+              }
+              var skpCases = ['TS', 'N', 'F', 'S', 'C', 'A', 'IR'], usrslst;
+              var usrs = d[i].N_Refer_To.split(',');
+              if (d[i].N_Tag == 'TS' && d[i].Space_Mode == 2) {
+                usrslst = 'moderator';
+
+              }
+              else
+              {
+                if (d[i].N_Refer_To == '' || d[i].N_Refer_To == undefined)
+                  usrslst = d[i].N_Author_Full_Name;
+                else
+                  usrslst = usrs[0].split(':')[1];
+              }
+
+              ttl = $(this).buildTxt(ttl, 0);
+
+              var str = "<li class='" + (pg ? '' : 'list') + "'>" +
+                      "<div class='" + (pg ? '' : 'notify transition in') + " " + (d[i].N_New ? "unrd" : "") + "'>" +
+                      "<a href='" + href + "' class='box'>" +
+                      "<div class='icn-big mid'>" +
+                      "<img src='" + imgsrcbase +
+                      (d[i].N_Refer_To == '' ? d[i].N_Author : usrs[0].split(':')[0]) + "' />" +
+                      "</div>" +
+                      "<p class='content'>" +
+                      "<span class='" + (pg ? 'block' : '') + " user-small'>" + usrslst + "</span>";
+              var mre = d[i].N_Refer_To ? d[i].N_Refer_To.split(",").length : 0;
+              if (mre > 1)
+                str += " and " + "<span class='shw-mre'>" + (mre - 1) + (mre == 2 ? ' other' : ' others') + "</span>";
+              str += "<span class='tagd'> " + tag + " </span>";
+              if (d[i].N_Type == 'S' || d[i].N_Type == 'U' || d[i].N_Tag == 'TS')
+                str += "<span class='" + (d[i].N_Type == 'U' ? 'ttl' : 'spc-nm') + "'>" + (ttl.length > 80 ? ttl.substr(0, 77) + '...' : ttl) + "</span>";
+              else
+                str += "<span class='ttl'>\"" + (ttl.length > 80 ? ttl.substr(0, 77) + '...' : ttl) + "\"</span>" +
+                        "<span class='tmsp block' tmsp='" + d[i].N_Timestamp + "'></span>" +
+                        "</p>" +
+                        "<div class='clearfix'></div>" +
+                        "</a>" +
+                        "</div>" +
+                        "</li>";
+              $this.append(str);
+            }
+          }
+        },
+        complete: function () {
+          if (!pg)
+            $this.find('.loading').remove();
+          if ($this.find('li').length)
+          {
+            var usrPicElms = $this.find("img");
+            usrPicElms.each(function () {
+              $(this).findPrfPic();
+            });
+            //$(this).updateTime({'ts': $(this).attr('tmsp')})
+            $this.find('.tmsp').each(function () {
+              $(this).updateTime({
+                'ts': $(this).attr('tmsp')
+              });
+            });
+            if (!pg)
+              $('#usr-ntfy li:last')
+                      .after("<li class='vw-mr'><a href='/" + usr + "/Dashboard?Notifications'>view more</a><div class='clearfix'></div></li>");
+          }
+        }
+      });
+      return flag;
     }
   });
 //Value of shIntr cookie and logged-in username to be used in api calls
@@ -1581,15 +2174,16 @@ $(document).ready(function () {
           btns = "<button type='button' class='btn btn-success yes accept span7 offset1'>Accept</button><button type='button' class='btn no decline span7'>Decline</button>";
           break;
         case 'A':
-          ev.tag = 'attending';
+          ev.tag = "attending <span class='ttl'>" + data.QP_Article_Event_Owner_FullName + "'s </span>";
           btns = "<button type='button' class='btn btn-success yes join span8 offset4'>Join</button>";
           break;
         case 'C':
-          ev.tag = 'created an event';
+          ev.tag = 'is organizing an event';
+          ev.tag2 = '</span> <span class="tagd"> in</span><span class="ttl spc-nm">' + data.QP_Space;
           btns = "<button type='button' class='btn btn-success yes join span8 offset4'>Join</button>";
           break;
         case 'CM':
-          ev.tag = 'commented on event';
+          ev.tag = 'commented on <span class="ttl">' + data.QP_Article_Event_Owner_FullName + "'s </span>";
           btns = "<button type='button' class='btn btn-success yes join span8 offset4'>Join</button>";
           break;
         case 'CC':
@@ -1645,20 +2239,22 @@ $(document).ready(function () {
         }
       }
       if (data.QP_Tag == 'N') {
-        var usrslst = "<p class='user-small'>" + data.QP_User_FullName + "</p>";
+        var usrslst = "<p class='user-small' data-href='" + data.QP_User + "' >" + data.QP_User_FullName + "</p>";
       }
       else {
-        var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'E');
-        usrslst = (usrslst != '') ? usrslst : "<p class='user-small'>" + ev.authFullName + "</p>";
+        var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'E', data.Article_Event_ID);
+        usrslst = (usrslst != '') ? usrslst : "<p class='user-small'  data-href='" + data.QP_User + "' >" + ev.authFullName + "</p>";
       }
+      var ttl = $(this).buildTxt(txt, 0);
+      ttl = ttl.length > 60 ? ttl.substr(0, 57) + '...' : ttl;
       var ld = "<li class='list'><div class='happening event' data=" + ev.url + ">" +
-              "<a href='" + ev.url + "'>" +
+              "<a href='" + $('body').data('auth') + ev.url + "'>" +
               "<span class='thumb-holder img-cnt'><img src='" +
               ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" : "/public/Multimedia/P_Pic_") +
               ev.auth + "' /></span>" +
               "<span class='content'>" + usrslst +
               "<span class='tagd'>" + ev.tag + "</span>" +
-              "<span class='ttl'>" + $(this).buildTxt(txt, 0) + "</span>" +
+              "<span class='ttl'>\"" + ttl + "\" " + (ev.tag2 ? $(this).buildTxt(ev.tag2) : '') + "</span>" +
               "<span class='tmsp block' tmsp='" + ev.tmsp + "'></span>" +
               "</span>" +
               "<div class='clearfix'></div>" +
@@ -1689,17 +2285,18 @@ $(document).ready(function () {
     switch (data.QP_Tag)
     {
       case 'W':
-        pb.tag = 'published a story';
+        pb.tag = 'published';
+        pb.tag2 = '</span> <span class="tagd"> in</span><span class="ttl spc-nm">' + data.QP_Space;
         pb.img = pb.auth;
         break;
       case 'P':
         pb.tag = 'voted poll in story';
         break;
       case 'CM':
-        pb.tag = 'commented on the story';
+        pb.tag = 'commented on <span class="ttl">' + data.QP_Article_Event_Owner_FullName + "'s </span>";
         break;
       case 'V' :
-        pb.tag = 'voted up story';
+        pb.tag = "votedup <span class='ttl'>" + data.QP_Article_Event_Owner_FullName + "'s </span>";
         break;
       case 'CC':
         pb.tag = 'replied to comment in this story';
@@ -1766,16 +2363,17 @@ $(document).ready(function () {
       else if (to == 'stream' && data.QP_Refer_To == '' && data.QP_Tag == 'CC') {
         pb.tag = 'replied to comment in this story';
       }
-
-      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'A');
-      usrslst = (usrslst != '') ? usrslst : "<p class='user-small'>" + pb.authFullName + "</p>";
+      var ttl = $(this).buildTxt(txt, 0);
+      ttl = ttl.length > 60 ? ttl.substr(0, 57) + '...' : ttl;
+      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'A', data.Article_Event_ID);
+      usrslst = (usrslst != '') ? usrslst : "<p class='user-small' data-href='" + data.QP_User + "' >" + pb.authFullName + "</p>";
       var ld = "<li class='list'><div class='happening published'>" +
-              "<a href='" + pb.url + "'>" +
+              "<a href='" + $('body').data('auth') + pb.url + "'>" +
               "<span class='thumb-holder img-cnt'><img src='" +
               ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" : "/public/Multimedia/P_Pic_") + pb.img + "' /></span>" +
               "<span class='content'>" + usrslst +
-              "<span class='tagd'>" + pb.tag + "</span>" +
-              "<span class='ttl'>" + $(this).buildTxt(txt, 0) + "</span>" +
+              "<span class='tagd'>" + pb.tag + " </span>" +
+              "<span class='ttl'>\"" + ttl + "\" " + (pb.tag2 ? $(this).buildTxt(pb.tag2) : '') + "</span>" +
               "<span class='tmsp block' tmsp='" + pb.tmsp + "'></span>" +
               "</span>" +
               "<div class='clearfix'></div>" +
@@ -1791,18 +2389,19 @@ $(document).ready(function () {
   {
     if (isJSON(data.QP_Content))
     {
-      var tag = null, usrimg = (data.QP_Refer_To).split(',').shift().split(':')[0];
+      var tag = null, tag2 = null, usrimg = (data.QP_Refer_To).split(',').shift().split(':')[0];
       switch (data.QP_Tag)
       {
         case 'C':
-          tag = 'published a petition';
+          tag = 'started a petition';
+          tag2 = '</span> <span class="tagd"> in</span><span class="ttl spc-nm">' + data.QP_Space;
           usrimg = data.QP_Article_Event_Owner;
           break;
         case 'P' :
           tag = 'voted poll in petition';
           break;
         case 'CM':
-          tag = 'commented on petition';
+          tag = 'commented on <span class="ttl">' + data.QP_Article_Event_Owner_FullName + "'s </span>";
           if (variables.user == data.QP_Article_Event_Owner)
             tag = 'commented on your petition';
           break;
@@ -1813,22 +2412,22 @@ $(document).ready(function () {
           tag = 'mentioned you in a comment';
           break;
         case 'S':
-          tag = 'signed a petition';
+          tag = "signed <span class='ttl'>" + data.QP_Article_Event_Owner_FullName + "'s </span>";
           break;
       }
-      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'P');
+      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'P', data.Article_Event_ID);
       var ttl = $(this).buildTxt(JSON.parse(data['QP_Content'])['ttl'], 0);
       if (ttl.length > 58)
         ttl = ttl.substr(0, 58) + '...';
-      usrslst = (usrslst != '') ? usrslst : "<p class='user-small'>" + data.QP_User_FullName + "</p>";
+      usrslst = (usrslst != '') ? usrslst : "<p class='user-small' data-href='" + data.QP_User + "' >" + data.QP_User_FullName + "</p>";
       var ld = "<li class='list'><div class='happening ptn' id='" + data.Article_Event_ID + "'>" +
-              "<a href='" + data.QP_Url + "'>" +
+              "<a href='" + $('body').data('auth') + data.QP_Url + "'>" +
               "<span class='thumb-holder img-cnt'>" +
               "<img src='" + ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" : "/public/Multimedia/P_Pic_") + usrimg + "' />" +
               "</span>" +
               "<span class='content'>" + usrslst +
               "<span class='tagd'>" + tag + "</span>" +
-              "<span class='ttl'>" + ttl + "</span>" +
+              "<span class='ttl'>\"" + ttl + "\" " + (tag2 ? $(this).buildTxt(tag2) : '') + "</span>" +
               "<span class='tmsp block' tmsp='" + data.QP_Timestamp + "'></span>" +
               "</span>" +
               "<div class='clearfix'></div></a></div><hr>" +
@@ -1838,13 +2437,16 @@ $(document).ready(function () {
   }
   // Townhall related entries
   function ldtwnhl(data) {
+    var usrimg = (data.QP_Refer_To).split(',').shift().split(':')[0];
     if (isJSON(data.QP_Content))
     {
-      var tag = null;
+      var tag = null, tag2 = null;
       switch (data.QP_Tag)
       {
         case 'W':
-          tag = 'hosting a townhall';
+          tag = 'is hosting a townhall';
+          tag2 = '</span> <span class="tagd"> in</span><span class="ttl spc-nm">' + data.QP_Space;
+          usrimg = data.QP_Article_Event_Owner;
           break;
         case 'P':
           tag = 'participated in townhall';
@@ -1860,18 +2462,19 @@ $(document).ready(function () {
             tag = 'commented on your answer in townhall';
           break;
       }
-      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'T');
+      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'T', data.Article_Event_ID);
       usrslst = (usrslst != '') ? usrslst : "<span href='/" + data.QP_User + "' class='user-small'>" + data.QP_User_FullName + "</span>";
       var content = JSON.parse(data.QP_Content);
 //      var link = (data.QP_Url).split("/");
       var date = $(this).getDateTime(content.date);
       var ld = "<li class='list'><div class='happening published' id='" + data.Article_Event_ID + "'>" +
-              "<a href='https://townhall.saddahaq.com" + data.QP_Url + "'>" +
-              "<span class='thumb-holder cal box'><span class='block mth twn'>" + date['m'] + "</span><span class='block number'>" +
-              date['d'] + "</span></span>" +
+              "<a href='" + $('body').data('twn') + data.QP_Url + "'>" +
+              "<span class='thumb-holder img-cnt'>" +
+              "<img src='" + ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" : "/public/Multimedia/P_Pic_") + usrimg + "' />" +
+              "</span>" +
               "<span class='content'>" + usrslst +
               "<span class='tagd'>" + tag + "</span>" +
-              "<span class='ttl'>" + $(this).buildTxt(content['ttl'], 0) + "</span>" +
+              "<span class='ttl'>\"" + $(this).buildTxt(content['ttl'], 0) + "\" " + (tag2 ? $(this).buildTxt(tag2) : '') + "</span>" +
               "<span class='tmsp block' tmsp='" + data.QP_Timestamp + "'></span>" +
               "</span>" +
               "<div class='clearfix'></div></a></div><hr>" +
@@ -1883,11 +2486,13 @@ $(document).ready(function () {
   function lddbt(data) {
     if (isJSON(data.QP_Content))
     {
-      var tag = null;
+      var usrimg = (data.QP_Refer_To).split(',').shift().split(':')[0], tag = null, tag2 = null;
       switch (data.QP_Tag)
       {
         case 'W':
           tag = 'started a debate';
+          tag2 = '</span> <span class="tagd"> in</span><span class="ttl spc-nm">' + data.QP_Space;
+          usrimg = data.QP_Article_Event_Owner;
           break;
         case 'P':
           tag = 'participated in debate';
@@ -1903,17 +2508,18 @@ $(document).ready(function () {
             tag = 'commented on your answer in debate';
           break;
       }
-      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'T');
+      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'D', data.Article_Event_ID);
       usrslst = (usrslst != '') ? usrslst : "<span href='/" + data.QP_User + "' class='user-small'>" + data.QP_User_FullName + "</span>";
       var content = JSON.parse(data.QP_Content);
       var date = $(this).getDateTime(content.date);
       var ld = "<li class='list'><div class='happening published' id='" + data.Article_Event_ID + "'>" +
               "<a href='" + $('body').data('dbt') + data.QP_Url + "'>" +
-              "<span class='thumb-holder cal box'><span class='block mth dbt'>" + date['m'] + "</span><span class='block number'>" +
-              date['d'] + "</span></span>" +
+              "<span class='thumb-holder img-cnt'>" +
+              "<img src='" + ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" : "/public/Multimedia/P_Pic_") + usrimg + "' />" +
+              "</span>" +
               "<span class='content'>" + usrslst +
               "<span class='tagd'>" + tag + "</span>" +
-              "<span class='ttl'>" + $(this).buildTxt(content['ttl'], 0) + "</span>" +
+              "<span class='ttl'>\"" + $(this).buildTxt(content['ttl'], 0) + "\" " + (tag2 ? $(this).buildTxt(tag2) : '') + "</span>" +
               "<span class='tmsp block' tmsp='" + data.QP_Timestamp + "'></span>" +
               "</span>" +
               "<div class='clearfix'></div></a></div><hr>" +
@@ -1980,32 +2586,32 @@ $(document).ready(function () {
       switch (data.QP_Tag)
       {
         case 'C':
-          tag = 'created a space';
+          tag = 'created this space';
           break;
         case 'CA':
-          tag = 'contributed a story';
+          tag = 'tagged ' + "<story>" + " in";
           break;
         case 'CP':
-          tag = 'contributed a petition';
+          tag = 'tagged ' + "<story>" + " in";
           break;
         case 'CE':
-          tag = 'contributed an event';
+          tag = 'tagged ' + "<story>" + " in";
           break;
         case 'F':
-          tag = 'following the space';
+          tag = 'started following this space';
           break;
       }
       var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'U');
       usrslst = (usrslst != '') ? usrslst : "<span href='/" + data.QP_User + "' class='user-small'>" + data.QP_User_FullName + "</span>";
       var content = JSON.parse(data.QP_Content);
       var ld = "<li class='list'><div class='happening published' id='" + data.Article_Event_ID + "'>" +
-              "<a href='" + $('body').data('rd') + data.QP_Url + "'>" +
+              "<a href='" + $('body').data('auth') + data.QP_Url + "'>" +
               "<span class='thumb-holder img-cnt'><img src='" +
               ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" :
                       "/public/Multimedia/P_Pic_") + data.QP_User + "' /></span>" +
               "<span class='content'>" + usrslst +
               "<span class='tagd'>" + tag + "</span>" +
-              "<span class='ttl'>" + $(this).buildTxt(content['ttl'], 0) + "</span>" +
+              "<span class='ttl spc-nm'>" + $(this).buildTxt(content['ttl'], 0) + "</span>" +
               "<span class='tmsp block' tmsp='" + data.QP_Timestamp + "'></span>" +
               "</span>" +
               "<div class='clearfix'></div></a></div><hr>" +
@@ -2022,16 +2628,16 @@ $(document).ready(function () {
       switch (data.QP_Tag)
       {
         case 'F':
-          tag = 'following ';
+          tag = 'started following ';
           data.QP_Featured_Image = data.QP_User;
           break;
       }
-      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'T');
+      var usrslst = consolidateList(data.QP_Tag, data.QP_Refer_To, 'T', data.Article_Event_ID);
       usrslst = (usrslst != '') ? usrslst : "<span href='/" + data.QP_User + "' class='user-small'>" + data.QP_User_FullName + "</span>";
       var content = JSON.parse(data.QP_Content);
       var ld = "<li class='list'><div class='happening published' id='" + data.Article_Event_ID + "'>" +
-              "<a href='" + $('body').data('rd') + data.QP_Url + "'>" +
-              "<span class='thumb-holder img-cnt usr-img'><img src='" +
+              "<a href='" + $('body').data('auth') + data.QP_Url + "'>" +
+              "<span class='thumb-holder img-cnt'><img src='" +
               ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" :
                       "/public/Multimedia/P_Pic_") + data.QP_Featured_Image + "' /></span>" +
               "<span class='content'>" + usrslst +
@@ -2050,27 +2656,50 @@ $(document).ready(function () {
     {
       var content = JSON.parse(data.QP_Content);
       var ld = "<li class='list'>" +
+              "<div class='happening cmpn box' id='" + data.Article_Event_ID + "'>" +
               "<a href='" + data.QP_Url + "' target='_blank'>" +
-              "<div class='happening cmpn' id='" + data.Article_Event_ID + "'>" +
-              "<span class='tmsp abs italicText' tmsp='" + data.QP_Timestamp + "'></span>" +
-              "<p class='span16'>" +
-              "<span class='thumb-holder span3 img-cnt usr-img'><img src='" +
-              data.QP_Featured_Image + "' /></span>" +
-              "<span class='content span12'>" + "<span href='/" + data.QP_User + "' class='user-small'>" +
-              data.QP_User_FullName + "</span>" +
-              "<span class='italicText'>started a campaign</span>" +
+              "<span class='thumb-holder img-cnt'><img src='" +
+              ($('#user-nav').data('isLive') ? "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_" :
+                      "/public/Multimedia/P_Pic_") + data.QP_User + "' /></span>" +
+              "<span class='content'>" + "<span href='/" + data.QP_User + "' class='user-small'>" +
+              (content.campaigner != '' ? content.campaigner : data.QP_User_FullName) + "</span>" +
+              "<span class='tagd'>started a campaign</span>" +
+              (content.campaigner != '' ? "<span class='ttl'>on " + data.QP_User_FullName + " for </span>" : '') +
               "<span class='ttl'>" + $(this).buildTxt(content['title'], 1) + "</span>" +
+              "<span class='tmsp block' tmsp='" + data.QP_Timestamp + "'></span>" +
               "</span>" +
-              "</p>" +
-              "<p class='span16 cmpn-btn'><i class='icon-donate'></i> Donate</p>" +
-              "<div class='clearfix'></div></div>" +
+              "<span class='clearfix'></span>" +
               "</a>" +
+              "<div class='cmpn-sts'>" +
+              "<div class='stats'><p class='pull-left'>"+Math.round(content.receieved_amt / content.target_amt * 100)+"%    </p><p class='pull-right'>Goal INR "+content.target_amt+"</p></div>" +
+              "<progress class='clearfix' value='"+content.receieved_amt+"' max='"+content.target_amt+"'></progress></div>" +
+              "<div class='btm-link'><a href='" + data.QP_Url + "'>" + "<i class='icon-donate'></i> " + (content["displayText"] ? content["displayText"] : "DONATE") + "</div></p>" +
+              "<div class='clearfix'></div></div>" +
               "</li>";
       return ld;
     }
   }
 
-  function consolidateList(tag, usrs, tp) {
+  function ldSpcFlw(data) {
+    $('.right-container .navbar h2').text('Spaces trending on saddahaq');
+    var ld = "<li class='list'>" +
+            "<div class='happening spcf' id='" + data.space_id + "'>" +
+            "<span class='thumb-holder icn-big usr-img'><img src='" + ($('body').data('isLive') ? 'https://saddahaq.blob.core.windows.net/multimedia/' : '/public/Multimedia/') +
+            data.space_image + "' /></span>" +
+            "<span class='content'>" +
+            "<a href='" + $("body").data("auth") + "/" + data.space_title_id +
+            "' target='_blank' class='s-h'>" + $(this).buildTxt(data.space_title, 0) + "</a>" +
+            "<span class='dft-msg block'><span><i class='" + (data.space_mode == 1 ? "icon-unlocked'></i> Open" : (data.space_mode == 2 ? "icon-moderator'></i> Moderated" : "'></i> Closed")) + "</span>" +
+            "<span class='dot'></span>" + data.follow_count + " Followers<span class='dot'></span>" +
+            "<a href='#' data-id='" + data.space_id + "' class='flw-spc flw-btn'>Follow</a>" +
+            "</span></span>" +
+            "<div class='clearfix'></div></div><hr>" +
+            "</li>";
+
+    return ld;
+  }
+
+  function consolidateList(tag, usrs, tp, id) {
     var usrslst = '';
     var tags = null;
     switch (tp)
@@ -2094,7 +2723,7 @@ $(document).ready(function () {
       usrs = usrs.split(',');
       var numusrs = usrs.length;
       var usr = usrs.shift().split(':');
-      usrslst = "<p class='user-small'>" + usr[1] + "</p>";
+      usrslst = "<p><span href='/" + usr[0] + "' class='user-small'>" + usr[1] + "</span>";
       if (numusrs > 1)
       {
         var five_usrs = usrs.slice(0, 5);
@@ -2102,44 +2731,12 @@ $(document).ready(function () {
         for (var u = 0; u < five_usrs.length; u++)
           mrlst += five_usrs[u].split(':')[1] + (u < five_usrs.length - 1 ? '<br/>' : '');
         if (numusrs > 6)
-          mrlst += " and " + (numusrs - 6) + " more";
-        usrslst += ' and <p class="shw-mre tltp" data-lst="' + mrlst + '" data-usr-lst=\'' + JSON.stringify(usrs) + '\'>' + (numusrs - 1) + ' more</p>';
+          mrlst += " and " + (numusrs - 6) + "others";
+        usrslst += ' and <span class="tltp shw-mre" data-info=\'{"tp": "' + tp + '", "actn": "' + tag + '", "id": "' + id + '", "cnt" : ' + numusrs + '}\' data-lst="' + mrlst + '" data-usr-lst=\'' + JSON.stringify(usrs) + '\'>' + (numusrs - 1) + ' other' + ((numusrs - 1) > 1 ? 's' : '') + '</span></p>';
       }
     }
     return usrslst;
   }
-  $('.right-comments').on('click', '.shw-mre', function () {
-    var $this = $(this);
-    var usrlst = $this.data('usrLst');
-    var cnt = $this.siblings("span.italicText").text();
-    $.post($('body').data('api') + "/gtf",
-            {
-              "id": "mre",
-              "tp": ($this.parents('.happening').hasClass('ptn') ? 'p' : ($this.parents('.happening').hasClass('event') ? 'e' : 's')),
-              "cnt": cnt
-            },
-    function (d) {
-      d = JSON.parse(d);
-      var popup = $('#pop-prw'), imgPath;
-      popup.find('> section').html(d['frm']).showPopup(0);
-      if ($('#user-nav').data('isLive'))
-        imgPath = "https://saddahaq.blob.core.windows.net/multimedia/P_Pic_";
-      else
-        imgPath = $("body").data("auth") + "/public/Multimedia/P_Pic_";
-      for (var u = 0; u < usrlst.length; u++)
-      {
-        var usr = usrlst[u].split(':');
-        popup.find('#more').find('.slidee').append('<li class="box">' +
-                '<a class="transition in" href="/' + usr[0] + '"><div class="thumb-holder img"><img src="https://saddahaq.blob.core.windows.net/multimedia/P_Pic_' + usr[0] + '" align="absmiddle"/></div>' + usr[1] + '</a>' +
-                '</li>');
-      }
-      popup.find('.slidee .thumb-holder img').bind('error', function () {
-        $(this).parent().append('<i class="icon-profile"></i>');
-        $(this).remove();
-      });
-      popup.find('.frame').enableSlider();
-    });
-  });
 
   function isJSON(str)
   {
@@ -2156,18 +2753,23 @@ $(document).ready(function () {
 
   function ldElem(parent, options)
   {
-    var str = '';
+    var str = '', sly;
+    if (!parent.data('sly'))
+      parent.enableSlider();
+
+    sly = parent.data('sly');
     var reqPst = 5;
     var newtab = false;
-    if (variables.prevTab != options.tab)
+    if (variables.prevTab != options.id)
     {
-      variables.prevTab = options.tab;
+      variables.prevTab = options.id;
       variables.prevPst = 0;
       if (options.tab == 'posts')
         reqPst = 5;
       else
         reqPst = 10;
       newtab = true;
+      parent.find('li').remove();
       variables.eod = false;
     }
     else
@@ -2220,57 +2822,65 @@ $(document).ready(function () {
                   case 'E' :
                     var tmp = ldevt(data[i], options.tab);
                     if (tmp != 0)
-                      str += tmp;
+                      str = tmp;
                     break;
                   case 'A' :
                     tmp = ldpblsh(data[i], options.tab);
                     if (tmp != 0)
-                      str += tmp;
+                      str = tmp;
                     break;
                   case 'Q' :
-                    str += ldqp(data[i]);
+                    str = ldqp(data[i]);
                     break;
                   case 'P' :
-                    str += ldptn(data[i]);
+                    str = ldptn(data[i]);
                     break;
                   case 'T':
-                    str += ldtwnhl(data[i]);
+                    str = ldtwnhl(data[i]);
                     break;
                   case 'D':
-                    str += lddbt(data[i]);
+                    str = lddbt(data[i]);
                     break;
                   case 'S':
-                    str += ldspc(data[i]);
+                    str = ldspc(data[i]);
                     break;
                   case 'U':
-                    str += ldusr(data[i]);
+                    str = ldusr(data[i]);
                     break;
                   case 'CP':
-                    str += ldCmpn(data[i]);
+                    str = ldCmpn(data[i]);
+                    break;
+                  case 'SF':
+                    str = ldSpcFlw(data[i]);
                     break;
                 }
+                if (!data[i].QP_Type) // remove this once the Qptype is update for space follow
+                  str = ldSpcFlw(data[i]);
+
+                if (str != '')
+                  sly.add(str);
+
+              }
+              if (data.length < reqPst)
+              {
+                str += "<li class='list'><div class='happening'><div class='btm-link'>That's all for now</div></div></li>";
+                variables.eod = true;
               }
             }
-            else if (data.length < reqPst)
-              variables.eod = true;
           }
         },
         complete: function () {
           if (newtab && variables.prevTab != 'posts')
             variables.prevPst += 5;
-          var sly = parent.data('sly');
-          if (str != '') {
-            sly.add(str);
-            var usrPicElms = $('.right-comments').find(".usr-img");
-            usrPicElms.each(function () {
-              $(this).find("img").findPrfPic();
+          if (parent.find('.list').length) {
+            parent.find(".thumb-holder img").each(function () {
+              $(this).findPrfPic(0, $(this).parents(".spcf").length ? 1 : 0);
             });
           }
           else
           {
-//            sly.add("<li class='right-dft-msg'><p>" + (parent.find('.list').length ? "It's dead end!" : "Looks like there's no activity") + "</p></li>");
+            parent.parents('.right-container .navbar h2').text("Follow our top users");
             if (!parent.find('.list').length) {
-              sly.add("<li class='right-dft-msg'><p>The stream looks empty! Start following people or begin a conversation so that we can keep you updated</p><hr></li>");
               $.ajax({
                 url: api + "/gfws",
                 async: true,
@@ -2289,11 +2899,15 @@ $(document).ready(function () {
                     if ($('#user-nav').data('isLive'))
                       prfpic = 'https://saddahaq.blob.core.windows.net/multimedia/P_Pic_';
                     for (var i = 0; i < d.length; i++) {
-                      temp = '<li class="list"><div class="auth-bx ad-mrgn"><a href="' + ($("body").data("auth") + "/" + d[i]["uname"]) + '" class="user-small prf-img small" >\n\
-                            <div class="pull-left usr-img ' + (d[i].ust == 2 ? "vusr" : "") + '"><img src = "' + (prfpic + d[i]["uname"]) + '" class="thumbholder pull-left" width="40" height="40">\n\
-                            </div><a class="user-small" href="' + ($("body").data("auth") + "/" + d[i]["uname"]) + '">' + d[i]["fullname"] + '</a><a data-uname="' + d[i]['uname'] + '" class="follow btn btn-success btn-mini ad-mrgn">Follow</a></a></div><hr></li>';
+                      temp = '<li class="list"><div class="auth-bx ad-mrgn"><div class="icn"><a href="' +
+                              ($("body").data("auth") + "/" + d[i]["uname"]) +
+                              '" class="user-small" ><img src = "' + (prfpic + d[i]["uname"]) +
+                              '" class="thumbholder" width="40" height="40">' +
+                              '</a></div><p><a class="user-small" href="' + ($("body").data("auth") + "/" +
+                                      d[i]["uname"]) + '">' + d[i]["fullname"] + '</a><a href="#" data-uname="' +
+                              d[i]['uname'] + '" class="follow flw-btn">Follow</a></p></div><hr></li>';
                       sly.add(temp);
-                      parent.find("img").findPrfPic();
+                      parent.find(".list:last img").findPrfPic();
                     }
                   }
                 }
@@ -2301,52 +2915,24 @@ $(document).ready(function () {
             }
           }
           var pos = sly.pos;
+
           if (pos.start == pos.end)
             parent.siblings('.scrollbar').addClass('transparent');
           else
-          {
             parent.siblings('.scrollbar').removeClass('transparent');
-          }
+
           parent.find('.tmsp').each(function () {
-            $(this).updateTime({
-              'ts': $(this).attr('tmsp')
-            });
+            $(this).updateTime();
           });
           variables.slyLoading = false;
           if (variables.prevPst < 10)
             $('.tab-content').find('.active .happening').animateElements(function () {
               parent.sly('reload');
             });
-          parent.find('.tltp').tooltip();
           str = null;
         }
       });
     }
-  }
-
-  function scaleImages(parent)
-  {
-    parent.find('.tile-image').each(function () {
-      $(this).load(function () {
-        $(this).scaleImages({
-          'dw': $(this).parents('div').width(),
-          'dh': $(this).parents('div').height()
-        });
-      });
-    });
-  }
-
-  function urlencode(str) {
-    str = (str + '')
-            .toString();
-    return encodeURIComponent(str)
-            .replace(/!/g, '%21')
-            .replace(/'/g, '%27')
-            .replace(/\(/g, '%28')
-            .
-            replace(/\)/g, '%29')
-            .replace(/\*/g, '%2A')
-            .replace(/%20/g, '+');
   }
 
   /* 
@@ -2356,25 +2942,31 @@ $(document).ready(function () {
    */
   function buildStryTl(nws, isSpc)
   {
-    var smry = $(this).buildTxt(nws.P_Smry);
-    if (smry.split(':::').length > 1)
-      smry = smry.split(':::')[1];
-    else if (smry.split('::').length > 1)
-      smry = smry.split('::')[1];
     var drftId = null, isDrft = (isJSON(nws.D_Content) ? 1 : 0),
             cimg_url = ($('#user-nav').data('isLive') || $('#right-bar').hasClass('prw-pg')) ? 'https://saddahaq.blob.core.windows.net/multimedia/Tile_' : '/public/Multimedia/Tile_';
-    var cimg = null, href = null, prepend = null, tp = null, tag = null, subcat = null;
+
+    var cimg = null, href = null, tp = null, tag = null, actBtn = '', dt = null;
     if (isDrft)
     {
       drftId = nws.D_ID;
-      href = '/articledraft/' + drftId;
+      tp = nws.D_Type;
+      var l = '';
+      if (tp == 'A') {
+        l = 'story';
+      }
+      else if (tp == 'E') {
+        l = 'event';
+      }
+      else {
+        l = 'petition';
+      }
+      href = '/' + l + 'draft/' + drftId;
       dt = JSON.parse(nws.D_Content);
       if (dt['cvimg']) {
         cimg = dt['cvimg'];
       }
       else
         cimg = '';
-      tp = 'A';
       var dTm = $(this).getDateTime(nws.D_TimeModified);
       tag = 'On ' + dTm['d'] + ' ' + dTm['m'] + ', ' + dTm['t'];
     }
@@ -2385,18 +2977,16 @@ $(document).ready(function () {
       switch (nws.ev)
       {
         case 1:
-          prepend = 'events/';
           tp = 'E';
           inactv = 'event';
           tag = 'created an event';
-          subcat = nws.P_SubCategory.split(',')[0] + '/';
+          actBtn = '<a href="#" class="atnd ' + (nws.P_IsMarkedReadLater ? '_mrkd' : '') + '"><i class="icon-calendar"></i></a>';
           break;
         case 2:
-          prepend = 'petitions/';
           inactv = 'petition';
           tp = 'P';
           tag = 'published a petition';
-          subcat = '';
+          actBtn = '<a href="#" class="sgn ' + (nws.P_IsMarkedReadLater ? '_mrkd' : '') + '"><i class="icon-petition"></i></a>';
           break;
         case 3:
           tp = 'T';
@@ -2415,17 +3005,14 @@ $(document).ready(function () {
           cimg = '/public/images/tile_debate.jpg';
           break;
         case 5:
-          prepend = 'spaces';
           tp = 'SP';
           tag = 'created a space';
-          subcat = '';
           break;
         default:
-          prepend = '';
           tp = 'A';
           inactv = 'article';
           tag = 'published a story';
-          subcat = nws.P_SubCategory.split(',')[0] + '/';
+          actBtn = '<a href="#" class="rdltr ' + (nws.P_IsMarkedReadLater ? '_mrkd' : '') + '"><i class="icon-bookmark-label"></i></a>';
           break;
       }
       if (nws.ev != 3 && nws.ev != 4) {
@@ -2433,21 +3020,33 @@ $(document).ready(function () {
           href = '/inactive/' + inactv + '/' + nws.P_Title_ID;
         }
         else {
-          href = "/"+nws.P_Title_ID + ((nws.P_Status == 2 || nws.P_Status == 9 || nws.P_Status == 13) ? '?mod=1' : '');
+          href = "/" + nws.P_Title_ID + ((nws.P_Status == 2 || nws.P_Status == 9 || nws.P_Status == 13) ? '?mod=1' : '');
         }
       }
     }
+
+    var ttl = $(this).buildTxt((isDrft ? (dt.ttl ? dt.ttl : 'Draft') : nws.P_Title), 0);
+    ttl = ttl.length > 120 ? ttl.substr(0, 117) + '...' : ttl;
+
+    var smry = $(this).buildTxt((isDrft ? dt['smry'] : nws.P_Smry));
+    if (smry.split(':::').length > 1)
+      smry = smry.split(':::')[1];
+    else if (smry.split('::').length > 1)
+      smry = smry.split('::')[1];
 
     var str = '<div class="nws-tl transition ph-vw ' + tp + '" id="' +
             (isDrft ? drftId : (nws.P_Id != null ? nws.P_Id : 'tmp' + new Date().getTime())) + '" data-tp="' + tp + '">' +
             '<section>' +
             '<div class="auth-bx">' +
-            '<a href="/' + nws.P_Author + '" class="prf-img small">' +
-            '<div class="pull-left usr-img ' + (nws.UST == 2 ? "vusr" : "") + '"></div>' +
+            '<a href="' + $('body').data('auth') + "/" + nws.P_Author + '" class="small">' +
+            '<div class="icn">' +
+            '<img src="' + ($('#user-nav').data('isLive') ? 'https://saddahaq.blob.core.windows.net/multimedia/P_Pic_' : '/public/Multimedia/P_Pic_') + nws.P_Author + '" /></div><p>' +
             '<span class="user-small " data-href="' + nws.P_Author + '">' + nws.P_Author_FullName + '</span>' +
-            '<p class="italicText">' + tag + '</p>' +
+            '<span class="dft-msg block">' + tag + '<span class="dot"></span>' +
+            '<span class="tmsp" tmsp="' + nws['P_TimeCreated'] + '"></span></span>' +
+            '</p>' +
             '</a>' +
-            '</div>';
+            '</div><div class="actn-btns">';
     if (!isDrft)
     {
       //Commenting code as pin to profile option for user has to be enabled on his piece tile -- Venugopal
@@ -2459,6 +3058,7 @@ $(document).ready(function () {
 //      }
 //      else
 //      {
+      var vtCnt = nws.votes + (nws.v_users) ? nws.v_users.length : 0;
       var stsFlgs = {
         "isSpc": (isSpc ? true : false),
         "rdl": nws.P_IsMarkedReadLater,
@@ -2468,79 +3068,70 @@ $(document).ready(function () {
         "tp": nws.ev,
         "psts": nws.P_Status,
         "dcm": nws.DCM,
-        "vts": nws.votes + nws.v_users.length,
+        "vts": vtCnt,
         "vtd": nws.isVoted
       };
-      str += '<a href="#" class="transition in actn-btn" data-flgs=\'' + JSON.stringify(stsFlgs) + '\'><i class="icon-more"></i></a>';
+      str += actBtn + '<a href="#" class="transition in actn-btn" data-flgs=\'' + JSON.stringify(stsFlgs) + '\'><i class="icon-tile-options"></i></a>';
 //      }
     }
     else
     {
-      str += '<a href="#con-del" class="del-drft actn-btn" data-toggle="modal" data-container="body" data-placement="top" data-original-title="Discard draft" role="button"><i class="icon-trash-closed"></i></a>';
+      str += '<a href="#con-del" class="del-drft" data-toggle="modal" data-container="body" data-placement="top" data-original-title="Discard draft" role="button"><i class="icon-trash-closed"></i></a>';
     }
-    str += '<div class="tl-dtls">' +
+    str += '</div><div class="tl-dtls ' + (nws.P_Feature_Image == '' ? '_noCvr' : '') + '">' +
             '<div class="actn-bx no-hgt box transition">' +
             '<div class="loading sml"></div>' +
             '</div>' +
+            (nws.P_Feature_Image != '' ? '<div class="cvr-bx" ' + (nws.P_Feature_Image != '' ?
+                    'style="background-image:url(' + cimg + ');"' : '') + '>' +
+                    '<div class="he-bg"></div><a href="' + href + '"></a></div>' : ''); // End cvr-bx
+    if (nws.ev != 5) {
+      str += '<a class="spc-nm" href="' + $('body').data('auth') + '/' + nws.Space_TitleId + '">' +
+              $(this).buildTxt(nws.Space_Title, 0) + '</a>';
+    }
+    str += '<div class="dsc-bx">' +
             '<a href="' + href + '">' +
-            '<div class="cvr-bx" style="background-image:url(' + cimg + ');">' +
-            '<div class="he-bg"></div>' +
             '<div class="stry-dtls">' +
-            '<div class="ttl">' +
-            $(this).buildTxt((isDrft ? (dt.ttl ? dt.ttl : 'Article Draft') : nws.P_Title), 0) + '</div>';
-    if (nws.ev == 0)
+            '<div class="ttl">' + ttl + '</div>';
+    if (nws.ev == 0 || nws.ev == 2 || nws.ev == 5 || isDrft)
       str += '<div class="smry">' + ((smry.length > 100) ? smry.substr(0, 97) + '...' : smry) + '</div>';
     else if (nws.ev == 1 || nws.ev == 3 || nws.ev == 4)
     {
-      var d = $(this).getDateTime(nws.P_EventStartTime);
-      if (nws.ev != 1)
-        str += '<div class="evt-dtls row-fluid pull-left" data-stm="' + nws.P_EventStartTime + '" data-etm="' + (parseInt(nws.P_EventStartTime) + parseInt(nws.P_EventEndTime)) + '">';
-      else
-        str += '<div class="evt-dtls row-fluid pull-left" data-stm="' + nws.P_EventStartTime + '" data-etm="' + nws.P_EventEndTime + '">';
-      if (nws.P_EventStartTime != 0)
-      {
-        str += '<div class="span4">' +
-                '<span class="cal box">' +
-                '<span class="block mth">' + d['m'] + '</span>' +
-                '<span class="block number">' + d['d'] + '</span></span>' +
-                '</div>' +
-                '<div class="span12 tm-lc">' +
-                '<span class="block tm"><i></i>' + d['t'] + '</span>';
+      if (nws.P_EventStartTime) {
+        st = $(this).getDateTime(nws.P_EventStartTime);
+        st = st['d'] + ' ' + st['m'] + ', ' + st['t'];
       }
-      else
-        str += '<div class="span12 tm-lc"><span class="tm block"><i></i> To be announced</span>';
-      if (nws.ev == 1)
-        str += '<span class="block loc"><i></i>' + (nws.P_EventLocation != '' ? nws.P_EventLocation : 'Venue to be announced') + '</span>';
-      else
-        str += '<p>Duration : ' + (nws.P_EventEndTime / 60) + 'mins</p>';
+      if (nws.P_EventEndTime)
+      {
+        var et = $(this).getDateTime(nws.P_EventEndTime);
+        et = et['d'] + ' ' + et['m'] + ', ' + et['t'];
+      }
 
-      str += (nws.P_EventStartTime != '' ? '</div>' : '') + '</div>' +
-              '<div class="clearfix"></div>';
+      str += '<div class="_evtDtls" data-stm="' + nws.P_EventStartTime + '" data-etm="' +
+              (nws.ev != 1 ? (parseInt(nws.P_EventStartTime) + parseInt(nws.P_EventEndTime)) : nws.P_EventEndTime) + '">' + '<p><i class="icon-time"></i>' + (nws.P_EventStartTime != 0 ? st + ((nws.P_EventStartTime == nws.P_EventEndTime) ? '' : (nws.P_EventEndTime && nws.ev == 1 ? ' - ' + et : '')) : 'To be announced') + '</p>' + (nws.ev == 1 ? '<p><i class="icon-map-location"></i>' + (nws.P_EventLocation != '' ? nws.P_EventLocation : 'Venue to be announced') + '</p>' : '<p><i class="icon-timer"></i> Duration : ' + (nws.P_EventEndTime / 60) + 'mins</p>') + '</div>';
     }
-    str += '</div></div></a>' + // End cvr-bx, stry-dtls and story link 'a'
-            '<div class="dsc-bx">';
+    str += '</a>';
     if (!isDrft)
     {
-      var dt = $(this).getDateTime(nws['P_TimeCreated']);
-      str += '<p class="dt-ln">Posted in "SPACE_NAME COMES HERE" on ' + dt['m'] + ' ' + dt['d'] + '</p>';
+      var actnTab;
+      if (nws.ev == 0)
+        actnTab = ['votedup this story', 'V', 'A'];
+      else if (nws.ev == 1)
+        actnTab = [(nws.v_users.length > 1 ? 'are' : 'is') + ' attending this event', 'A', 'E'];
+      else if (nws.ev == 5)
+        actnTab = ['following this space', 'F', 'S'];
+      else
+        actnTab = ['signed this petition', 'S', 'P'];
       if (nws.v_users != undefined && nws.v_users.length > 0) {
-        str += '<hr><p class="v-lst"><a class="user-small" href="/' + nws.v_users[0].UName + '">' + $.trim(nws.v_users[0].Name) + '</a>' +
-                (nws.v_users[1] ? ', <a class="user-small" href="/' + nws.v_users[1].UName + '">' + $.trim(nws.v_users[1].Name) + '</a>' : '') +
-                (nws.votes > 0 ? ' and <a href="#">' + nws.votes + ' other(s)</a>' : '');
-        if (nws.ev == 0)
-          str += ' votedup this story</p>';
-        else if (nws.ev == 1)
-          str += (nws.v_users.length > 1 ? ' are' : ' is') + ' attending this event';
-        else if (nws.ev == 5)
-          str += ' following this space';
-        else
-          str += ' signed this petition';
+        str += '<hr><p class="v-lst"><a href="/' + nws.v_users[0].UName + '">' + $.trim(nws.v_users[0].Name) + '</a>' +
+                (nws.v_users[1] ? ', <a href="/' + nws.v_users[1].UName + '">' + $.trim(nws.v_users[1].Name) + '</a>' : '') +
+                ((nws.votes) > 0 ? ' and <a href="#" class="shw-mre" data-info = \'{"tp": "' + actnTab[2] + '", "actn": "' + actnTab[1] + '", "id": "' + nws.P_Id + '", "cnt" : "' + (nws.votes + nws.v_users.length) + '", "author": "' + nws.P_Author_FullName + '",  "Ttl": "' + $(this).trimText(ttl) + '"}\'>' + (nws.votes) + ' other(s)</a> ' : '') + ' ' + actnTab[0];
       }
       if (nws.P_Num_Comments != undefined && nws.P_Num_Comments > 0) {
-        str += '<hr><p class="c-lst"><a class="user-small" href="/' + nws.Commented_Users[0].UN + '">' + nws.Commented_Users[0].FN + '</a>' +
-                (nws.Commented_Users[1] ? ', <a class="user-small" href="/' + nws.Commented_Users[1].UN + '">'
+        str += '<hr><p class="c-lst"><a href="/' + nws.Commented_Users[0].UN + '">' + nws.Commented_Users[0].FN + '</a>' +
+                (nws.Commented_Users[1] ? ', <a href="/' + nws.Commented_Users[1].UN + '">'
                         + nws.Commented_Users[1].FN + '</a>' : '') +
-                (nws.Comment_Count_Unique - 2 > 0 ? ' and <a href="#">' + (nws.Comment_Count_Unique - 2) + ' other(s)</a>' : '');
+                (nws.Comment_Count_Unique - 2 > 0 ? ' and <a href="#" class="shw-mre" data-info = \'{"tp": "' + tp + '", "actn": "CM", "id": "' + nws.P_Id + '", "cnt" : "' + nws.Comment_Count_Unique + '", "author": "' + nws.P_Author_FullName + '",  "Ttl": "' + ttl + '"}\' >' + (nws.Comment_Count_Unique - 2) + ' other(s)</a>' : '');
         str += ' commented on this ' + (nws.ev == 0 ? 'story' : (nws.ev == 1 ? 'event' : 'petition')) + '</p>';
       }
       str += '</div></div>';
@@ -2549,6 +3140,37 @@ $(document).ready(function () {
             '</section>' +
             '</div>';
     return str;
+  }
+
+  function buildSpaces(spc, trgt)
+  {
+    trgt.append(buildSpcList(spc));
+    var spcItm = trgt.find('#' + spc.P_Id);
+    if (spc.P_Cover_Image)
+      spcItm.find('.spc-cvr').loadSpcCvrImg();
+    spcItm.find('.tmsp').updateTime();
+    spcItm.find('.usr img').findPrfPic();
+  }
+
+  function buildSpcList(spc)
+  {
+    var htm = '<div class="src-itm spc" id="' + spc.P_Id + '">' +
+            '<div class="_usr-info">' +
+            '<div class="usr">' +
+            '<div class="icn-sml"><img src="' + ($('#user-nav').data('isLive') ? 'https://saddahaq.blob.core.windows.net/multimedia/P_Pic_' : '/public/Multimedia/P_Pic_') + spc.P_Author + '" /></div>' +
+            '<p><a href="/' + spc.P_Author + '" class="user-small">' + spc.P_Author_FullName + '</a>' +
+            '<span class="tmsp dft-msg block" tmsp="' + spc.P_TimeCreated + '"></span>' +
+            '</p>' +
+            '</div>' +
+            '</div>' +
+            '<div class="spc-itm">' +
+            '<a href="' + $('body').data('auth') + '/' + spc.P_Title_ID + '"></a>' +
+            (spc.P_Cover_Image != '' ? '<div class="spc-cvr" data-cvr="' + spc.P_Cover_Image + '"></div>' : '') +
+            '<h3 class="ttl">' + $(this).buildTxt(spc.P_Title, 0) + '</h3>' +
+            '<p class="smry">' + $(this).buildTxt(spc.P_Smry, 0) + '</p></div>' +
+            '<hr>' +
+            '</div>';
+    return htm;
   }
 
   function setPosition($this, cntnr)
@@ -2580,7 +3202,7 @@ $(document).ready(function () {
     }
     if (parseInt($this.get(0).style.left) == 0 || i == 0)
       $this.addClass('l');
-    else if (parseInt($this.get(0).style.left) == $this.outerWidth())
+    else
       $this.addClass('r');
     $this.addClass('in');
   }
@@ -2653,57 +3275,6 @@ $(document).ready(function () {
                     thrdElm != undefined ? thrdElm.offsetTop + $(thrdElm).outerHeight() : 0)
             );
   }
-  function ldSpcLvBlg($this, srcId)
-  {
-    var tmp = '<div class="nws-tl cntrbt-bx transition" id="cntrb-bx">' +
-            '<section class="cntrbt">' +
-            '<div class="auth-bx"></div>' +
-            '<a href="#live-blog" class="nw-nt transition in actn-btn opn-lv-blg' +
-            '" data-toggle="tooltip" data-container="body" data-placement="top"' +
-            ' data-original-title="Drop your note here..">' +
-            '<i class="icon-plus" style="font-size : 1.5714em; margin: -1px 0 0 4px;"></i></a>' +
-            '<a href="#live-blog" class="opn-lv-blg">' +
-            '<div class="smry"></div>' +
-            '</a>' +
-            '</section>' +
-            '</div>';
-    $this.append(tmp);
-    $.post('/ajax/gtlbdt', {"pid": srcId, "cnt": "1", "tmsp": Math.floor(new Date() / 1000), "updt": 0}, function (d) {
-      var trgt = $('#cntrb-bx');
-      if (d == -1)
-        trgt.find('.opn-lv-blg .smry').html('<p class="drp">Drop your note here</p>');
-      else
-      {
-        d = JSON.parse(d);
-        var tmp = $('<div>');
-        tmp.html($this.buildTxt(d[0]['B_Content'], 1));
-        var frstNode = tmp.get(0).childNodes[0];
-        var usr = d[0]['B_Username'].split('::');
-        trgt.find('.auth-bx').html('<a href="/' + usr[1] + '" class="user-small prf-img small"><img src="/public/Multimedia/P_Pic_' + usr[1] + '"' +
-                ' class="thumbholder pull-left" align="absmiddle" width="40" height="40" />' +
-                usr[0] + '<p class="italicText">dropped a note</p></a>');
-        if (frstNode.nodeType == 3)
-          trgt.find('.opn-lv-blg .smry').html((frstNode['data'].length > 180 ? frstNode['data'].substr(0, 176) + '...' : frstNode['data']));
-        else
-          trgt.find('.opn-lv-blg .smry').html('<img src="' + frstNode['src'] + '" />');
-      }
-    });
-  }
-  function isMobile() {
-    if (navigator.userAgent.match(/Android/i)
-            || navigator.userAgent.match(/webOS/i)
-            || navigator.userAgent.match(/iPhone/i)
-            || navigator.userAgent.match(/iPad/i)
-            || navigator.userAgent.match(/iPod/i)
-            || navigator.userAgent.match(/BlackBerry/i)
-            || navigator.userAgent.match(/IEMobile/i)
-            ) {
-      return true;
-    }
-    else {
-      return false;
-    }
-  }
 
   /* brute force changes for wishberry static tile in repeal-section-377 */
   function bruteForceWb() {
@@ -2766,4 +3337,393 @@ $(document).ready(function () {
       trgt.find(".actn-bx").html(actnCnt);
     }
   }
+
+  /* search related functionality */
+  var hlpTxt = ['Try "in:stories Sachin.."', 'Try "in:events exhibit.."', 'Try "in:petitions Net neu.."', 'Try "@johanathan"', 'Try "#saddahaq"'], focusTmr = null;
+  $('.search-query').attr('placeholder', hlpTxt[Math.floor(Math.random() * (hlpTxt.length))]).on('focus',
+          function () {
+            $this = $(this);
+            focusTmr = setInterval(function () {
+              $this.attr('placeholder', hlpTxt[Math.floor(Math.random() * (hlpTxt.length))]);
+            }, 1500);
+          });
+  $('.search-query').on('blur', function () {
+    clearInterval(focusTmr);
+  });
+
+  var api = $('body').data('api');
+  if ($("#search-frm").length)
+    $("#search-frm").find('.datepicker').datepicker();
+  var sug = "", srch, isSelf = 0, prvSrchKey, isSrchLdng, txt, srchOpts = {};
+
+  $("#search-frm, #search-bx").on("keyup", ".search-query", function (e, save) {
+    var $this = $(this);
+    txt = $(this).val().toLowerCase();
+    isSrchLdng = false;
+    // 1 is added at the end to mark that user is searching for his data
+    var i, sugTags = ["in:stories::AR", "in:petitions::PE", "in:events::EV", "in:townhalls::TO",
+      "in:debates::DE", "in:hashtags::H", "in:users::U", "in:spaces::SP"], usrSugTags = ["my:favorites::MF::1",
+      "my:readinglist::RL::1", "my:stories::AR::1", "my:events::EV::1", "my:petitions::PE::1",
+      "my:townhalls::TO::1", "my:debates::DE::1", "my:spaces::SP::1", "my:history::HI::1"];
+    if ($this.getLoggedInUsr())
+      sugTags = sugTags.concat(usrSugTags);
+    if (e.keyCode == 32 && txt.length == 0)
+      e.preventDefault();
+    if (txt == "" && $this.data('ui-autocomplete')) {
+      $this.autocomplete("destroy");
+      sug = "";
+    }
+    else if ((txt.indexOf('in') == 0 || txt.indexOf('my') == 0)) {
+      $this.autocomplete({
+        source: function (req, res) {
+          res($.map($.ui.autocomplete.filter(sugTags, req.term), function (item) {
+            item = item.split('::');
+            return {
+              "label": item[0],
+              "value": item[1],
+              "isSelf": item.length == 3 ? 1 : 0
+            };
+          }));
+        },
+        focus: function (e, ul) {
+          e.preventDefault();
+          sug = ul.item.value;
+          isSelf = ul.item.isSelf;
+          $this.val(ul.item.label + ' ');
+          $this.data('kwd', ul.item.label);
+        },
+        select: function (e, ul) {
+          e.preventDefault();
+          sug = ul.item.value;
+          isSelf = ul.item.isSelf;
+          $this.val(ul.item.label + ' ');
+          $this.data('kwd', ul.item.label);
+        }
+      });
+      $this.autocomplete("enable");
+    }
+    else if (txt.indexOf('in:') == -1 && txt.indexOf('my:') == -1)
+    {
+      if ($this.data('ui-autocomplete'))
+        $this.autocomplete("disable");
+      sug = "";
+    }
+
+    //in case of empty search kwd , remove the popout and empty the results section
+    if ((e.keyCode == 8 || e.keyCode == 46) && (txt == $this.data('kwd') || txt == '@' || txt == '#' || txt.length < 3)) {
+      $("#popout").removeAttr("class");
+      $this.siblings(".popper").removeClass("_opn");
+      $("#srch-rslt").empty();
+      $this.removeData('kwd').val('');
+      return false;
+    }
+
+    if (txt.length > 3) {
+      srchOpts = {page: 1, cnt: 15, pc: 0};
+      if (txt.toLowerCase().indexOf("in:") == 0 || txt.toLowerCase().indexOf("my:") == 0) {
+        if (sug.length)
+        {
+          if (txt.indexOf(' ') != -1)
+            srch = txt.substr(txt.indexOf(' '), txt.length).trim();
+        }
+        else //Case when filter is typed instead of selection
+        {
+          var tmp = txt.substr(0, txt.indexOf(' '));
+          for (var i = 0; i < sugTags.length; i++)
+          {
+            var tag = (sugTags[i]).split('::');
+            if (tmp == tag[0])
+            {
+              sug = tag[1];
+              srch = txt.substr(txt.indexOf(' '), txt.length).trim();
+              if (tag.length == 3)
+                isSelf = 1;
+              else
+                isSelf = 0;
+              break;
+            }
+          }
+        }
+      }
+      else if (txt.indexOf("#") == 0) {
+        $this.getHstgSgstns();
+      }
+      else if (txt.indexOf("@") == 0) {
+        sug = 'U';
+        srch = txt.substr(1);
+      }
+      else
+        srch = txt;
+
+      if (srch && prvSrchKey != srch)
+      {
+        showSearchResults($this, (e.keyCode == 13) ? txt : save);
+        prvSrchKey = srch;
+      }
+    }
+    if (srch && e.keyCode == 13)
+      window.location = "/search?q=" + encodeURIComponent(txt);
+  });
+
+  $("#search-frm").on("click", "a", function (e) {
+    e.preventDefault();
+    srchOpts = {page: 1, cnt: 15, pc: 0};
+    showSearchResults($(this).parent().siblings("input[type='text']"), true);
+  });
+  //to show results when redirected from search bar to search page
+  if ($("#search-frm").length && $("#search-frm").find(".search-query").val().trim().length) {
+    $("#search-frm").find(".search-query").trigger("keyup", $("#search-frm").find(".search-query").val().trim());
+  }
+
+  function showSearchResults($this, save) {
+    //if users show suggestions irrespective to search page / search in nav bar
+    if (!isSrchLdng)
+    {
+      if (sug == "U") {
+        $.ajax({'url': api + '/us',
+          data: {'usr': srch},
+          type: 'POST',
+          beforeSend: function () {
+            isSrchLdng = true;
+          },
+          success: function (res) {
+            res = JSON.parse(res);
+            if (res.success == 0) {
+              $("#popout").removeClass("in");
+              $this.siblings(".popper").removeClass("opn");
+              return;
+            }
+            var imgPth = $('#user-nav').data('isLive') ? 'https://saddahaq.blob.core.windows.net/multimedia/P_Pic_' : '/public/Multimedia/P_Pic_';
+            if ($this.parents("#search-bx").length) {
+              var htm = '';
+              $.each(res.msg, function (i, v) {
+                if (i == 2)
+                  return false;
+                htm += '<a href="' + $('body').data('auth') + "/" + v.U + '" class="usr"><div class="icn pull-left"><img src="' +
+                        imgPth + v.U + '" /></div><p>' + v.F + " " + v.L + '<span class="dft-msg block">' + '@' + v.U + '</span></p></a>';
+              });
+              showSuggestions(htm, $this, sug);
+            }
+            else {
+              $("#srch-rslt").empty();
+              $.each(res.msg, function (i, v) {
+                $("#srch-rslt").append('<a href="' + $('body').data('auth') + "/" + v.U + '" class="usr clearfix"><div class="icn-big pull-left"><img src="' + imgPth + v.U + '" ></div>' + '<p><span class="user-small">' + v.F + " " + v.L +
+                        '</span><span class="dft-msg block">' + '@' + v.U + '</span></p></a><hr>');
+                $("#srch-rslt").find("a:last").find(".icn-big img").findPrfPic();
+              });
+              $("#srch-rslt").addClass("srch-sgstn");
+            }
+            if (res['msg'].length < 10)
+              isSrchLdng = true;
+            else
+              isSrchLdng = false;
+          }
+        });
+      }
+      else if (srch != '') {
+        srchOpts.ctgy = "search",
+                srchOpts.scat = sug.length ? sug : "all",
+                srchOpts.kwd = srch,
+                srchOpts.dt = $("#strt-dt").val() ? Math.floor(new Date($("#strt-dt").val()).getTime() / 1000) : 0,
+                srchOpts.edt = $("#end-dt").val() ? Math.floor(new Date($("#end-dt").val()).getTime() / 1000) : Math.floor(new Date().getTime() / 1000),
+                srchOpts.auth = $this.getShIntr(),
+                srchOpts.usr = $this.getLoggedInUsr();
+        srchOpts.save = save;
+        srchOpts.isSelf = isSelf;
+        var htm = '';
+        $.ajax(api + '/gts', {
+          data: srchOpts,
+          dataType: 'json',
+          async: true,
+          type: 'post',
+          beforeSend: function () {
+            isSrchLdng = true;
+            if (srchOpts.page <= 1)
+              $('#srch-rslt').children().remove();
+
+          },
+          success: function (data) {
+            if (data != null)
+            {
+              data = data.msg;
+              var d = 0;
+              if(data == '' && $this.parents("#search-bx").length)
+                 clsPopout();
+              while (d < data.length)
+              {
+                if ($this.parents("#search-bx").length) // To limit number of entries on search popup
+                {
+                  htm += buildSrchRslts(data[d], $this);
+                    showSuggestions(htm, $this);
+                    if (d == 1)
+                    break;
+                }
+                else
+                {
+                  htm = buildSrchRslts(data[d], $this);
+                  $("#srch-rslt").append(htm);
+                  var trgt = $('#srch-rslt > #' + data[d]['P_Id']);
+                  //load cover image in space
+                  if (trgt.find('.spc-cvr').length)
+                    trgt.find('.spc-cvr').loadSpcCvrImg();
+
+                  //Check for profile picture
+                  trgt.find('._usr-info img').each(function () {
+                    $(this).findPrfPic();
+                  });
+
+                  //Updating timestamp
+                  trgt.find('.tmsp').each(function () {
+                    $(this).updateTime();
+                  });
+                }
+                d++;
+              }
+              // isSrchLdng is used as the variable will always remain true until user changes the key
+              if (data.length < srchOpts.cnt)
+                isSrchLdng = true;
+              else
+              {
+                isSrchLdng = false;
+                srchOpts.page++;
+                if (srchOpts.page == 1)
+                  srchOpts.cnt = 15;
+                else
+                  srchOpts.cnt = 6;
+                srchOpts.pc = srchOpts.pc + data.length;
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+
+  function buildSrchRslts(nws, $this) {
+    var dt = [], htm = "";
+    dt = {};
+    dt['ttl'] = nws.P_Title;
+
+    var smry = $(this).buildTxt(nws.P_Smry);
+    if (smry.split(':::').length > 1)
+      dt['dsc'] = smry.split(':::')[1];
+    else if (smry.split('::').length > 1)
+      dt['dsc'] = smry.split('::')[1];
+    else
+      dt['dsc'] = smry;
+
+    dt['url'] = (nws.ev != 3 && nws.ev != 4 ? $('body').data('auth') :
+            (nws.ev == 3 ? $('body').data('twn') : (nws.ev == 4 ? $('body').data('dbt') : ''))) + "/" + nws.P_Title_ID;
+    if (nws.ev == 5 && nws.P_Cover_Image != '')
+      dt['cvr'] = nws.P_Cover_Image;
+
+    if (!$this.parents('#search-bx').length)
+    {
+      var smry = '';
+      switch (nws['ev'])
+      {
+        case 1:
+          var ev_dt = $this.getDateTime(nws.P_EventStartTime);
+          smry = '<p class="smry">' +
+                  '<span class="block"><i class="icon-time"></i> ' + ev_dt['m'] + ' ' +
+                  ev_dt['d'] + ', ' + ev_dt['t'] + '</span>' +
+                  '<span class="block"><i class="icon-map-location"></i> ' + nws.P_EventLocation + '</span>' +
+                  '</p>';
+          break;
+        default :
+          smry = '<p class="smry">' + $this.buildTxt(dt['dsc'], 0) + '</p>';
+          break;
+      }
+      htm += '<div class="src-itm ' + (nws.ev == 5 ? 'spc' : '') + '" id="' + nws.P_Id + '">' +
+              '<div class="_usr-info">' +
+              '<div class="usr">' +
+              '<div class="icn-sml"><img src="' + ($('#user-nav').data('isLive') ? 'https://saddahaq.blob.core.windows.net/multimedia/P_Pic_' : '/public/Multimedia/P_Pic_') + nws.P_Author + '" /></div>' +
+              '<p><a href="' + $('body').data('auth') + "/" + nws.P_Author + '" class="user-small">' + nws.P_Author_FullName + '</a>' +
+              '<span class="dot"></span><span class="tmsp" tmsp="' + nws.P_TimeCreated + '"></span>';
+      if (nws.ev != 5) {
+        htm += '<span class="block">in <a href="' + $('body').data('auth') + "/" + nws.Space_TitleId + '" class="spc-nm">' +
+                nws.Space_Title + '</a></span>';
+      }
+      htm += '</p>' +
+              '</div>' +
+              '</div>' +
+              '<div class="spc-itm">' +
+              '<a href="' + dt['url'] + '"></a>' +
+              (dt['cvr'] != undefined ? '<div class="spc-cvr" data-cvr="Space_Tile_' + nws.P_Id + '"></div>' : '') +
+              '<h3 class="ttl">' + $this.buildTxt(dt['ttl'], 0) + '</h3>' +
+              smry + '</div>' +
+              '<hr>' +
+              '</div>';
+    }
+    else
+    {
+      htm += '<a href="' + dt["url"] + '"><span class="dft-msg block"><i class="icon-profile"></i> ' +
+              nws.P_Author_FullName + '</span><span class="ttl">' + $this.buildTxt(dt['ttl'], 0) + '</span></a>';
+    }
+    return htm;
+  }
+
+  var rcntSrchShwd = false; // flag for recent search suggestions ajax call
+  function showSuggestions(htm, $this, tp) {
+    var pop = $this.siblings(".popout");
+    if ($('#popout').hasClass('in'))
+    {
+      $('#popout').find('#src-rslt').html(htm+'<a class="btm-link" href="/search?q=' + encodeURIComponent($this.val().trim()) + '">View more</a>');
+    }
+    else
+    {
+      pop.find('> section').html(htm+'<a class="btm-link" href="/search?q=' + encodeURIComponent($this.val().trim()) + '">View more</a>');
+      if (pop.find("a").length > 1 && !$this.siblings(".popper").hasClass("opn"))
+        $this.siblings(".popper").trigger("click");
+    }
+    $("#popout").find('a').each(function () {
+      $(this).find('.icn img').findPrfPic();
+    });
+
+    // ajax call to get recent search suggestions    
+    if ($this.parents("#search-bx").length && !rcntSrchShwd) {
+      rcntSrchShwd = true;
+      $.ajax({'url': $("body").data("api") + '/gpus',
+        data: {
+          "usr": $this.getLoggedInUsr(),
+          "auth": $this.getShIntr(),
+          pc: 0,
+          cnt: 4
+        },
+        type: 'POST',
+        success: function (res) {
+          res = JSON.parse(res);
+          if (res.success) {
+            var htm = '<a class="mrkr"><span>Recent Search</span></a>';
+            $.each(res.msg, function (i, v) {
+              if (i == 4)
+                return;
+              htm += '<a href="' + $('body').data('auth') + "/search?q=" + v.kwd + '">' + v.kwd + '</a>';
+            });
+            $("#popout > section").find("a:last").before(htm);
+          }
+        }});
+    }
+
+  }
+ 
+  function clsPopout()
+  {
+    var trgt = $('#popout');
+    trgt.removeAttr('class').contents().not('.arrow').remove();
+    $('.popper._opn').removeClass('_opn');
+    setTimeout(function () {
+      trgt.removeAttr('style');
+    }, 100);
+  }
+
+  /* Load additional tiles when the user hits the bottom of the page */
+  $(window).scroll(function () {
+    var scroll = $(window).scrollTop();
+    if ($(document).height() <= ($(window).height() + scroll * 1.5) && $('#srch-rslt').length && !isSrchLdng)
+      showSearchResults($("#search-frm").find(".search-query"));
+  });
+
+  /* end of search functionality */
+
 });
