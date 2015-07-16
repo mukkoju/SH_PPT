@@ -1,0 +1,170 @@
+.container-fluid{
+    position: relative;
+    text-align: center;
+    padding: 0;
+}
+#intro {
+  background-image: url("https://testing.saddahaq.com/public/Uploads/devendarg/4128230-gandhi-1.png");
+}
+.intro-block {
+  background: transparent no-repeat center center;
+  -webkit-background-size: 100%;
+  -moz-background-size: 100%;
+  -o-background-size: 100%;
+  background-size: 100%;
+  background-size: cover;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  overflow: hidden;
+}
+.cntnt{
+    width: 50%;
+    margin: auto;
+}
+.slogan{
+    font-family: 'Roboto Slab' sans-serif;
+    font-size: 3.428em;
+    line-height: 1.4em;
+    padding-top: 208px;
+}
+.container-fluid p{
+    font-size: 1.4em;
+    color: #3F3F3F;
+    line-height: 1.4em;
+}
+.container-fluid img{
+    margin-bottom: 80px;
+}
+#disconnect, #opportunity{
+    background-color: rgb(236, 236, 236);
+    position: relative;
+}
+#disconnect .discnt-icn{
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 50%;
+    position: absolute;
+    height: 50px;
+}
+#disconnect .discnt-icn.left{
+    top: 140px;
+    left: 245px
+}
+#disconnect .discnt-icn.right{
+    top: 210px;
+    right: 245px
+}
+#disconnect .discnt-icn img{
+    width: 50px;
+    height: 50px;
+    max-width: 100%;
+    
+}
+section{
+    padding-top: 120px;
+}
+#world-map{
+    background-image: url('https://testing.saddahaq.com/public/Uploads/devendarg/44431915-aasd.gif');
+}
+#world-map p{
+    padding: 40px 0 !important;
+}
+#opportunity{
+    text-align: left;
+}
+h2{
+    font-weight: 500 !important;
+    line-height: 1.4em;
+    font-size: 2.6em;
+}
+#opportunity .cntnt, #scl-jrnlsm .cntnt{
+    width: 66%;
+    margin-bottom: 40px;
+}
+#scl-jrnlsm{
+ background-color: #DE1218;
+ text-align: left;
+}
+#scl-jrnlsm h2, #scl-jrnlsm p{
+    color: white;
+}
+.line{
+    border-color: #333;
+    position: absolute;
+}
+.line.left{
+    -webkit-transform: rotate(25deg);
+    top: 239px;
+    left: 292px;
+}
+.line.vertcle {
+    -webkit-transform: rotate(90deg);
+    bottom: -21px;
+    left: 550px;
+    z-index: 100;
+}
+.line.vertcle.frst{
+    bottom: 408px;
+    left: 627.5px;
+}
+.line.vertcle.scnd {
+    bottom: 248px;
+    left: 627.5px;
+}
+.line.right{
+    -webkit-transform: rotate(25deg);
+    top: 200px;
+    right: 292px;
+}
+.bbl{
+    border-radius: 12px;
+    font-size: 0.857em;
+    font-weight: 600;
+    text-align: center;
+    background-color: #D32F2F;
+    line-height: 20px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0;
+    display: inline-block;
+    vertical-align: baseline;
+    white-space: nowrap;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+    position: absolute;
+    z-index: 100;
+}
+.bbl.left{
+    top: 234px;
+    left: 400px;
+    border-radius: 68px;
+}
+.bbl.right{
+    top: 206px;
+    right: 400px;
+    border-radius: 68px;
+    
+}
+.graph{
+    -webkit-transform: rotate(180deg);
+    position: relative;
+    text-align: center;
+    display: inline-block;
+    margin-left: 50%;
+    margin-top: 10%;
+}
+.graph li{
+    width: 18px;
+    background-color: #fff;
+    float: left;
+    margin: 4px;
+    position: relative;
+}
+.graph li span{
+    position: absolute;
+    -webkit-transform: rotate(180deg);
+    bottom: -18px;
+    left: -2px;
+    color: white;
+    font-weight: 700;
+}
