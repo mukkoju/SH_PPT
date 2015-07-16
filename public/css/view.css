@@ -36,7 +36,7 @@
 .container-fluid img{
     margin-bottom: 80px;
 }
-#disconnect, #opportunity{
+#disconnect, #opportunity, #slids{
     background-color: rgb(236, 236, 236);
     position: relative;
 }
@@ -85,6 +85,7 @@ h2{
 #scl-jrnlsm{
  background-color: #DE1218;
  text-align: left;
+ height: 1000px !important;
 }
 #scl-jrnlsm h2, #scl-jrnlsm p{
     color: white;
@@ -138,27 +139,44 @@ h2{
     top: 234px;
     left: 400px;
     border-radius: 68px;
+    animation: blink 0.8s infinite linear;
+    -webkit-animation: blink 1s infinite linear;
+    -moz-animation: blink 1s infinite linear;
 }
 .bbl.right{
     top: 206px;
     right: 400px;
     border-radius: 68px;
-    
+    animation: blink 0.8s infinite linear;
+    -webkit-animation: blink 1s infinite linear;
+    -moz-animation: blink 1s infinite linear;
+}
+@keyframes blink {
+    from {background-color:  #D32F2F;}
+    to {background-color: rgb(236, 236, 236);}
+}
+@-webkit-keyframes blink {
+    from {background-color:  #D32F2F;}
+    to {background-color: rgb(236, 236, 236);}
 }
 .graph{
     -webkit-transform: rotate(180deg);
     position: relative;
     text-align: center;
     display: inline-block;
-    margin-left: 50%;
-    margin-top: 10%;
+      height: 165px;
 }
 .graph li{
     width: 18px;
     background-color: #fff;
     float: left;
-    margin: 4px;
+    margin: 8px;
     position: relative;
+    -webkit-transition: all 2s ease-out;
+    -moz-transition: all 2s ease-out;
+    -ms-transition: all 2s ease-out;
+    -o-transition: all 2s ease-out;
+    transition: all 2s ease-out;
 }
 .graph li span{
     position: absolute;
@@ -167,4 +185,45 @@ h2{
     left: -2px;
     color: white;
     font-weight: 700;
+}
+.mbls{
+    float: left;
+    margin-left: 16%;
+    margin-right: 8%;
+}
+.mbls ul{
+    margin-bottom: 16px;
+}
+.mbls ul li{
+    float: left;
+    margin: -4px;
+}
+.mbls ul li img{
+    width: 48px;
+    margin: 0;
+}
+.sqnc{
+    list-style-type: none;
+}
+.sqnc li{
+    height: 80px;
+    width: 80px;
+    background-color: #fff;
+    border-radius: 50%;
+    float: left;
+    padding: 24px;
+    text-align: center;
+    margin: 0 60px 0 60px;
+    z-index: 1000;
+}
+.text li{
+    width: 208px;
+    float: left;
+    text-align: center;
+    padding: 24px;
+}
+.sqnc li span{
+    font-weight: 700;
+    font-size: 1.2em;
+    line-height: 5.142em;
 }

@@ -79,20 +79,59 @@
             </section> 
         </div>
         <div class="container-fluid" id="scl-jrnlsm">
-              
+            <section>
+                <div class="mbls">
+                    <ul class="clearfix">
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                    </ul>
+                    <ul class="clearfix">
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                    </ul>
+                    <ul class="clearfix">
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                        <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
+                    </ul>
+                </div>
               <ul class="graph">
-                  <hr style="width: 165px; top:-8px; position: absolute; left: -17px">
-                  <li style="height: 120px"><span>590</span></li>
-                  <li style="height: 110px"><span>438</span></li>
-                  <li style="height: 90px"><span>330</span></li>
-                  <li style="height: 70px"><span>264</span></li>
-                  <li style="height: 40px"><span>200</span></li>
-                  <hr style="width: 138px; top: 61px; left:  78px; -webkit-transform: rotate(90deg); position: absolute">
+                  <hr style="width: 180px; top:-4px; position: absolute; left: -4px">
+                  <li style="height: 0px" data-height='130'><span data-to='590'>590</span></li>
+                  <li style="height: 0px" data-height='100'><span data-to='438'>438</span></li>
+                  <li style="height: 0px"data-height='80'><span data-to='330'>330</span></li>
+                  <li style="height: 0px" data-height='60'><span data-to='264'>264</span></li>
+                  <li style="height: 0px" data-height='40'><span data-to='200'>200</span></li>
+                  <hr style="width: 160px; top: 75px; left:  95px; -webkit-transform: rotate(90deg); position: absolute">
                 </ul>
-              
-            <h2 class="cntnt"><strong style="text-decoration: underline">Social journalism</strong> is the answer</h2>
+            <h2 class="cntnt clearfix"><strong style="text-decoration: underline">Social journalism</strong> is the answer</h2>
             <p class="cntnt">A platform that leverages the power of Internet and Mobile to connect people, stories and communication will be game changer</p>
+            <p class="cntnt">A Social journalism platform must<br>address three technical challenge:</p>
+            <div style="position: relative">
+            <ul class="sqnc clearfix cntnt">
+                <li><span>News</span></li>
+                <li><span>Dialogue</span></li>
+                <li><span>Action</span></li>
+            </ul>
+                <ul class="text clearfix cntnt">
+                <li><p>A provision to tell/share stories, opinions,  analysis</p></li>
+                <li><p>A means to discover stories, dialogues and activity</p></li>
+                <li><p>A means to help audience take action on stories in the right context</p></li>
+            </ul>
+                <p style=" width: 30%; position: absolute; font-size: 0.5em !important; border: 1px solid; border-style: dashed; left: 400px; top: 66px;"></p>
+            </div>
+            <div class="clearfix"></div>
           </section>
         </div>
+        <div class="container-fluid" id="slids"></div>
+        <script type="text/javascript" src="/public/js/view.js?v=1"></script>
     </body>
 </html>    
