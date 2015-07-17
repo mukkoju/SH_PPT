@@ -78,7 +78,7 @@ h2{
     line-height: 1.4em;
     font-size: 2.6em;
 }
-#opportunity .cntnt, #scl-jrnlsm .cntnt{
+#opportunity .cntnt, #scl-jrnlsm .cntnt, #milestones .cntnt{
     width: 66%;
     margin-bottom: 40px;
 }
@@ -152,11 +152,11 @@ h2{
     -moz-animation: blink 1s infinite linear;
 }
 @keyframes blink {
-    from {background-color:  #D32F2F;}
+    from {background-color:  #FA0B0B;}
     to {background-color: rgb(236, 236, 236);}
 }
 @-webkit-keyframes blink {
-    from {background-color:  #D32F2F;}
+    from {background-color:  #FA0B0B;}
     to {background-color: rgb(236, 236, 236);}
 }
 .graph{
@@ -188,15 +188,23 @@ h2{
 }
 .mbls{
     float: left;
-    margin-left: 16%;
-    margin-right: 8%;
+    margin-right: 20%;
+    position: relative;
 }
 .mbls ul{
     margin-bottom: 16px;
+    width: 200px;
 }
 .mbls ul li{
     float: left;
     margin: -4px;
+    -webkit-transition: all 1s ease-out;
+    -moz-transition: all 1s ease-out;
+    -ms-transition: all 1s ease-out;
+    -o-transition: all 1s ease-out;
+    transition: all 1s ease-out;
+    width: 0;
+    overflow: hidden;
 }
 .mbls ul li img{
     width: 48px;
@@ -205,7 +213,7 @@ h2{
 .sqnc{
     list-style-type: none;
 }
-.sqnc li{
+.sqnc li, .crcl-icn{
     height: 80px;
     width: 80px;
     background-color: #fff;
@@ -216,14 +224,187 @@ h2{
     margin: 0 60px 0 60px;
     z-index: 1000;
 }
+#milestones .sqnc li{
+    background-color: #DE1218;
+    height: 10px;
+    width: 10px;
+    padding: 16px;
+    margin: 0 40px 0 40px;
+}
+.sqnc li{
+    opacity: 0;
+}
+.crcl-icn{
+    position: absolute;
+    height: 50px;
+    width: 50px;
+    font-weight: 700;
+    line-height: 1em;
+    color: #000;
+    bottom: -15px;
+    left: 94px;
+    font-size: 0.952em;
+    opacity: 0;
+}
+.pulstate {
+    opacity: 1 !important;
+    -webkit-animation: pulsate 0.4s ease-out;
+    -moz-animation: pulsate 0.4s ease-out;
+    animation: pulsate 0.4s ease-out;
+}
+.crcl-icn h3{
+    line-height: 1em;
+    color: #000 !important;
+    font-weight: 700;
+}
+@-webkit-keyframes pulsate {
+    0% {-webkit-transform: scale(0, 0);}
+    100% {-webkit-transform: scale(1, 1);}
+}
+@-moz-keyframes pulsate {
+    0% {-moz-transform: scale(0, 0);}
+    100% {-moz-transform: scale(1, 1);}
+}
+@keyframes pulsate {
+    0% {transform: scale(0, 0);}
+    100% {transform: scale(1, 1);}
+}
 .text li{
     width: 208px;
     float: left;
     text-align: center;
     padding: 24px;
 }
+.dted-line{
+    width: 0;
+    position: absolute; 
+    font-size: 0.5em !important; 
+    border: 1px solid; 
+    border-style: dashed; 
+    left: 400px; 
+    top: 66px;
+    overflow: hidden;
+}
 .sqnc li span{
     font-weight: 700;
     font-size: 1.2em;
     line-height: 5.142em;
+}
+.scl-anm{
+    margin: 0 auto 120px auto;
+    width: 66%;
+}
+.f-box{
+    width: 1255px;
+}
+.slider{
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;        
+}
+.slider-box{
+    position: relative;
+    width: 20000px;
+    top: 0;
+    left: 0;
+    -webkit-backface-visibility: hidden;
+    -webkit-transition: -webkit-transform 0.2s ease-in-out;
+    -moz-transition: -moz-transform 0.2s ease-in-out;
+    -o-transition: -o-transform 0.2s ease-in-out;
+    transition: transform 0.2s ease-in-out;
+}
+.slider img{
+    max-width: 100%;
+}
+.slidr-nav {
+    display: inline-block;
+    margin-top: -24px;
+}
+.slidr-nav li{
+    width: 12px;
+    height: 12px;
+    background-color: #ddd;
+    float: left;
+    border-radius: 50%;
+    margin: 2px;
+    cursor: pointer;
+}
+.slidr-nav li._actv{
+    background-color: #333;
+}
+.slider .item{
+  width: 1255px;
+  max-width: 100%;
+  float: left;
+  position: relative;
+  margin: 32px 60px 0 60px;
+}
+.slider .item._actv{
+   left: 0;
+   display: block;
+}
+.slider .item._actv.left{
+    left: -100%;
+}
+.slider .item._actv.right{
+    left: 100%;
+}
+.slider> .item.next{
+    position: absolute;
+    top: 0;
+    width: 100%;
+    left: 100%;
+    display: block;
+}
+.slider> .item.prev{
+    left: -100%;
+}
+.slider> .item.next.left, .slider> .item.prev.right {
+    left: 0;
+}
+.nav-btn-left, .nav-btn-right{
+  position: absolute;
+  width: 70px;
+  height: 140px;
+  top: 50%;
+  opacity: .1;
+  margin-top: -70px;
+  -webkit-transition: .2s ease all;
+  transition: .2s ease all;  
+  }
+.nav-btn-left:hover{
+    left: -12px !important;
+    opacity: 0.5;
+}
+.nav-btn-right:hover{
+    right: -12px !important;
+    opacity: 0.5;
+}
+.sldr-nav-right{
+   width: 70px;
+   height: 140px;
+   background: #000;
+    border-top-left-radius: 900px;
+   border-bottom-left-radius: 900px;
+}
+.sldr-nav-left{
+   width: 70px;
+   height: 140px;
+   background: #000;
+   border-top-right-radius: 900px;
+   border-bottom-right-radius: 900px;
+}
+.sldr-nav-left i, .sldr-nav-right i{
+    font-size: 4em;
+    vertical-align: middle;
+    margin-top: 40px;
+    color: #fff;
+}
+.trns{
+    -webkit-transition: all 1s ease-out;
+    -moz-transition: all 1s ease-out;
+    -ms-transition: all 1s ease-out;
+    -o-transition: all 1s ease-out;
+    transition: all 1s ease-out;
 }

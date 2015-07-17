@@ -9,7 +9,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
         <link href="/public/css/layout.css?v=1" media="screen" rel="stylesheet" type="text/css" />
         <link href="/public/css/view.css?v=6" media="screen" rel="stylesheet" type="text/css" />
-        <link href="/public/css/saddahaq.css?v=1" media="screen" rel="stylesheet" type="text/css" />
+        <link href="/public/css/saddahaq.css" media="screen" rel="stylesheet" type="text/css" />
         <link href='//fonts.googleapis.com/css?family=Gentium+Basic:400,400italic|Noto+Sans:400,500,700,400italic,700italic' rel='stylesheet' type='text/css'>
         <link href='http://fonts.googleapis.com/css?family=Roboto+Slab:400,700' rel='stylesheet' type='text/css'>
         <script type="text/javascript" src="/public/js/jquery.min.js?v=1"></script>
@@ -80,6 +80,7 @@
         </div>
         <div class="container-fluid" id="scl-jrnlsm">
             <section>
+              <div class="scl-anm">
                 <div class="mbls">
                     <ul class="clearfix">
                         <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
@@ -102,6 +103,7 @@
                         <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
                         <li><img src="https://testing.saddahaq.com/public/Uploads/dontha/2845193-smartphone86-1.png"></li>
                     </ul>
+                    <span class="crcl-icn"><h3>+1</h3> Billion Phones</span>
                 </div>
               <ul class="graph">
                   <hr style="width: 180px; top:-4px; position: absolute; left: -4px">
@@ -112,6 +114,7 @@
                   <li style="height: 0px" data-height='40'><span data-to='200'>200</span></li>
                   <hr style="width: 160px; top: 75px; left:  95px; -webkit-transform: rotate(90deg); position: absolute">
                 </ul>
+             </div>
             <h2 class="cntnt clearfix"><strong style="text-decoration: underline">Social journalism</strong> is the answer</h2>
             <p class="cntnt">A platform that leverages the power of Internet and Mobile to connect people, stories and communication will be game changer</p>
             <p class="cntnt">A Social journalism platform must<br>address three technical challenge:</p>
@@ -126,12 +129,58 @@
                 <li><p>A means to discover stories, dialogues and activity</p></li>
                 <li><p>A means to help audience take action on stories in the right context</p></li>
             </ul>
-                <p style=" width: 30%; position: absolute; font-size: 0.5em !important; border: 1px solid; border-style: dashed; left: 400px; top: 66px;"></p>
+                <p class="dted-line jurn"></p>
             </div>
             <div class="clearfix"></div>
           </section>
         </div>
-        <div class="container-fluid" id="slids"></div>
+        <div class="container-fluid" id="slids">
+            <div class="f-box">
+            <div class="slider">
+                <div class="slider-box" data-next="0">    
+             <div class="item">
+               <img src="https://testing.saddahaq.com/public/Uploads/dontha/59122244-story.png">
+             </div>
+             <div class="item">
+                 <img src="https://testing.saddahaq.com/public/Uploads/dontha/95201300-spaces.png">
+             </div>
+             <div class="item">
+                 <img src="https://testing.saddahaq.com/public/Uploads/dontha/2083209-notification.png">
+             </div>
+             <div class="item">
+                 <img src="https://testing.saddahaq.com/public/Uploads/dontha/78053053-action.png">
+             </div>
+            </div>
+            </div>
+                </div>
+<!--                <a href="#" class="nav-btn-left nav_btn" style="left: -43px;">
+                <div class="sldr-nav-left"><i class="icon-chevron-left"></i></div>
+                </a>
+                <a href="#" class="nav-btn-right nav_btn" style="right: -43px;">
+                    <div class="sldr-nav-right"><i class="icon-chevron-right"></i></div>
+                </a>-->
+                <ul class="slidr-nav"><li class="_actv"></li><li></li><li></li><li></li></ul>
+        </div>
+        <div class="container-fluid" id="milestones">
+            <section>
+            <div style="position: relative">
+            <ul class="sqnc clearfix cntnt">
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+                <li></li>
+            </ul>
+                <ul class="text clearfix cntnt">
+                <li><p>A provision to tell/share stories, opinions,  analysis</p></li>
+                <li><p>A means to discover stories, dialogues and activity</p></li>
+                <li><p>A means to help audience take action on stories in the right context</p></li>
+            </ul>
+                <p class="dted-line"style="width: 48%; left: 278px; top: 23px;"></p>
+            </div>
+                 </section>
+        </div>
         <script type="text/javascript" src="/public/js/view.js?v=1"></script>
     </body>
 </html>    
