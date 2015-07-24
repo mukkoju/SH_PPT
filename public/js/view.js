@@ -109,12 +109,22 @@ $(document).ready(function(){
      var index = $this.index();
      navigation(null, index);
      $this.addClass('_actv').siblings().removeClass('_actv');
-  });
+     });
   
    $(window).scroll(function(e) {
      if($(this).scrollTop() > $("#opportunity").offset().top){  
          e.preventDefault();
      }
       });
+      
+   $('#slids' ).bind( 'mousewheel DOMMouseScroll', function ( e ) {
+      var e0 = e.originalEvent,
+      delta = e0.wheelDelta || -e0.detail;
+      this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+        var crnt = $('.slidr-nav').find('li._actv').index();
+        if(crnt < 3)
+          e.preventDefault();  
+        $('.slidr-nav').find('li').eq(crnt+1).click();
+});
  
 });

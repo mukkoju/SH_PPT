@@ -160,6 +160,11 @@
                     <div class="sldr-nav-right"><i class="icon-chevron-right"></i></div>
                 </a>-->
                 <ul class="slidr-nav"><li class="_actv"></li><li></li><li></li><li></li></ul>
+                <div class="side-note">
+                    <h2>building communities</h2>
+                    <p>A means to discover stories, dialogues and activityA means to discover stories, dialogues and activity</p>
+                    <p>A means to discover stories, dialogues and activityA means to discover stories, dialogues and activity</p>
+                </div>
         </div>
         <div class="container-fluid" id="milestones">
             <section>

@@ -408,3 +408,17 @@ h2{
     -o-transition: all 1s ease-out;
     transition: all 1s ease-out;
 }
+.side-note{
+    position: absolute;
+    right: 0;
+    height: auto;
+    width: 26%;
+    color: #fff !important;
+    bottom: 0;
+    background-color: #DE1218;
+    padding: 16px;
+    text-align: left;
+}
+.side-note p{
+    color: white !important;
+}
